@@ -8,7 +8,11 @@ app_license = "mit"
 # Apps
 # ------------------
 
-# required_apps = []
+required_apps = ["erpnext"]
+
+inbound_email_handlers = [
+	"erpnext_moldova_settlements.inbox.handle_inbound_email",
+]
 
 # Each item in the list will be shown as an app in the apps page
 # add_to_apps_screen = [
@@ -137,13 +141,21 @@ app_license = "mit"
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-# 	}
-# }
+after_migrate = [
+	"erpnext_moldova_settlements.moldova_settlements.journal_entry.ensure_settlement_register_field",
+	"erpnext_moldova_settlements.moldova_settlements.workspace.ensure_accounting_shortcut",
+]
+
+override_doctype_dashboards = {
+	"Journal Entry": "erpnext_moldova_settlements.moldova_settlements.journal_entry.get_dashboard_data"
+}
+
+doc_events = {
+	"Bank Transaction": {
+		"on_update": "erpnext_moldova_settlements.moldova_settlements.register.refresh_registers_for_bank_transaction",
+		"on_update_after_submit": "erpnext_moldova_settlements.moldova_settlements.register.refresh_registers_for_bank_transaction",
+	}
+}
 
 # Scheduled Tasks
 # ---------------

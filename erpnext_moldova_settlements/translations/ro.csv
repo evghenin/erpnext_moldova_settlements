@@ -1,0 +1,150 @@
+A fee debit is not linked to a fee row.,Debitarea comisionului nu este legată de rândul comisionului.
+A payment row has no date.,Rândul de plată nu are dată.
+Accounts,Conturi
+Actions,Acțiuni
+A cancelled register cannot be changed.,Un registru anulat nu poate fi modificat.
+Actions are available in Draft.,Acțiunile sunt disponibile în ciornă.
+MAIB Ecomm,MAIB magazin online
+MAIB POS,MAIB POS
+Amount,Sumă
+Attach the supplier file before saving.,Atașați fișierul furnizorului înainte de salvare.
+Bank Account,Cont bancar
+Bank Transaction,Tranzacție bancară
+Bank Transaction {0} has no reconciled Journal Entry.,Tranzacția bancară {0} nu are o notă contabilă reconciliată.
+Bank Transaction {0} is already on register {1}.,Tranzacția bancară {0} este deja în registrul {1}.
+Bank Transaction {0} is already on this register.,Tranzacția bancară {0} este deja în acest registru.
+Bank Transaction {0} is not reconciled.,Tranzacția bancară {0} nu este reconciliată.
+Cannot read the date {0}.,Data {0} nu poate fi citită.
+Cannot read the transaction time {0}.,Ora tranzacției {0} nu poate fi citită.
+Mode of Payment,Mod de plată
+Card Number,Număr card
+Cash Amount,Sumă numerar
+Clearing Account,Cont de compensare
+Fee {0} still has debits.,Comisionul {0} mai are debitări.
+Fee Debits,Debitări ale comisionului
+Fee Row,Rând comision
+Fee debits are only used for MAIB POS.,Debitările comisionului se folosesc doar pentru MAIB POS.
+"Fee debits for {0} do not match the fee amount.","Debitările comisionului pentru {0} nu coincid cu suma comisionului."
+Fees,Comisioane
+Company,Companie
+Company {0} already has a row for {1}.,Compania {0} are deja un rând pentru {1}.
+Create Missing Payments,Creează plățile lipsă
+Create Payment If Missing,Creează plata dacă lipsește
+Creating payments is turned off for this source.,Crearea plăților este oprită pentru această sursă.
+Credit Date,Data încasării
+Currency,Valută
+Customer,Client
+Default Customer,Client implicit
+"On a submitted register, create a Payment Entry for a row that still has no link. Leave this off for MAIB POS until the invoice stores ReferintaTranzactiei.","Pe un registru înregistrat creează Payment Entry pentru rândul care a rămas fără legătură. Pentru MAIB POS lăsați dezactivat până când factura păstrează ReferintaTranzactiei."
+"Written onto a payment row that has no customer. While the row has no Payment Entry or Sales Invoice, it can be changed or cleared. A selected customer limits the payment and invoice lists and is not replaced.","Se scrie pe rândul de plată fără client. Cât timp nu există Payment Entry și Sales Invoice, poate fi schimbat sau șters. Clientul ales limitează listele de plată și factură și nu este înlocuit."
+Deposit {0} still has a Bank Transaction.,Încasarea {0} are încă o tranzacție bancară.
+Deposit Row,Rând încasare
+Deposits,Încasări
+Draft,Ciornă
+External Number,Număr extern
+Fee Account,Contul comisionului
+Fee Amount,Suma comisionului
+"File amounts do not match on row {0}: payment {1}, fee {2}, net {3}.","Sumele din fișier nu coincid pe rândul {0}: plată {1}, comision {2}, net {3}."
+Green,Verde
+Identify Fee Bank Transactions,Identifică automat tranzacțiile bancare ale comisioanelor
+Identify Deposit Bank Transactions,Identifică automat tranzacțiile bancare ale încasărilor
+Identify Payment Documents,Identifică automat documentele de plată
+Instant Discount,Reducere instantanee
+Journal Entry,Notă contabilă
+Settlements Settings,Setări ale registrelor de plăți
+Net Amount,Net
+Payer Name,Numele plătitorului
+Payment {0} is already in register {1}.,Plata {0} este deja în registrul {1}.
+{0} is in {1} and not in this register.,{0} este în {1} și lipsește din acest registru.
+{0} is not in another MAIB Ecomm register.,{0} nu este în niciun alt registru MAIB Ecomm.
+Fee for {0} is not posted because that day differs from another MAIB Ecomm register.,Comisionul pentru {0} nu este înregistrat: ziua diferă de un alt registru MAIB Ecomm.
+Register {0} uses Payment Entry {1} from this register. Cancel {0} first.,Registrul {0} folosește încasarea {1} din acest registru. Anulați mai întâi {0}.
+Register {0} uses Journal Entry {1} from this register. Cancel {0} first.,Registrul {0} folosește nota contabilă {1} din acest registru. Anulați mai întâi {0}.
+Coverage,Acoperire
+"Payments another daily or monthly register has on these credit dates, and payments this register does not share with one.","Plăți pe care un alt registru zilnic sau lunar le are la aceste date și plăți pe care acest registru nu le împarte cu niciunul."
+Payment {0} is already in this register.,Plata {0} este deja în acest registru.
+Payment Amount,Suma plății
+Payment Created,Plată creată de registru
+Payment Entry,Încasare
+Payment Entry {0} amount does not match the payment row.,Suma încasării {0} nu corespunde rândului de plată.
+Payment Entry {0} belongs to another customer.,Încasarea {0} aparține altui client.
+Payment Entry {0} cannot be linked to this register.,Încasarea {0} nu poate fi legată de acest registru.
+Payment Entry {0} is in another currency.,Încasarea {0} este în altă monedă.
+Payment Entry {0} is not paid to the clearing account.,Încasarea {0} nu este înregistrată în contul de compensare.
+Payments are created after the register is submitted.,Plățile se creează după înregistrarea registrului.
+Payment row needs one link: Payment Entry or Sales Invoice.,Rândul de plată trebuie să aibă o singură legătură: încasare sau factură de vânzare.
+Payments,Plăți
+Receipt Date,Data primirii
+Reconciled,Reconciliat
+Red,Roșu
+References,Legături
+Register {0} already exists.,Registrul {0} există deja.
+Register Date,Data registrului
+Register Number,Numărul registrului
+Reversal Amount,Sumă revers
+Reversal Cash Amount,Numerar revers
+Reversed Fee,Comision reversat
+Row Number,Număr rând
+Row Status,Starea rândului
+Sales Invoice,Factură de vânzare
+Sales Invoice {0} amount does not match the payment row.,Suma facturii {0} nu corespunde rândului de plată.
+Sales Invoice {0} belongs to another customer.,Factura de vânzare {0} aparține altui client.
+Sales Invoice {0} cannot be linked to this register.,Factura de vânzare {0} nu poate fi legată de acest registru.
+Sales Invoice {0} is in another currency.,Factura de vânzare {0} este în altă monedă.
+Sales Invoice {0} is not paid to the clearing account.,Factura de vânzare {0} nu este încasată în contul de compensare.
+Search Posted Payments,Caută plăți înregistrate
+Searching for payments is turned off for this source.,Căutarea plăților este oprită pentru această sursă.
+Select a company for {0}.,Selectați compania pentru {0}.
+Set Settlements Settings for {0}.,Completați setările registrelor de plăți pentru {0}.
+Set the bank account.,Indicați contul bancar.
+Set the clearing account.,Indicați contul de compensare.
+Set the clearing account and the fee account.,Indicați contul de compensare și contul comisionului.
+Set the company.,Indicați compania.
+Settlement Register,Registrul plăților
+Source,Sursă
+Source File,Fișier sursă
+Sources,Surse
+Status,Stare
+Supplier Inbox Email,E-mail din inboxul furnizorului
+Terminal ID,Terminal
+Terminal Name,Denumirea terminalului
+The account {0} belongs to another company.,Contul {0} aparține altei companii.
+The MAIB POS payment table was not found.,Tabelul plăților MAIB POS nu a fost găsit.
+The MAIB POS report has no payment rows.,Raportul MAIB POS nu are plăți.
+The MAIB POS report has no transfer period.,Raportul MAIB POS nu are perioada transferului.
+The MAIB POS report must use one currency.,Raportul MAIB POS trebuie să aibă o singură valută.
+The autorizat report does not create a register.,Raportul autorizat nu creează un registru.
+The bank account belongs to another company.,Contul bancar aparține altei companii.
+"The file is not a NovaPay, MegaMega, or MAIB POS register.","Fișierul nu este un registru NovaPay, MegaMega sau MAIB POS."
+The payment table is missing columns.,Tabelului de plăți îi lipsesc coloane.
+The payment table was not found.,Tabelul plăților nu a fost găsit.
+The register has no payment rows.,Registrul nu are plăți.
+The workbook has no worksheet.,Registrul de calcul nu are foaie.
+This file is not a settlement register.,Acest fișier nu este un registru de plăți.
+Total Fee,Comision
+Total Net,Net
+Total Payment,Total plăți
+Totals,Totaluri
+Transaction Datetime,Data și ora tranzacției
+Transaction Type,Tipul tranzacției
+Transfer Amount,Suma transferului
+Transfer Date,Data transferului
+Unreconciled,Nereconciliat
+Valuta,Valuta din fișier
+Yellow,Galben
+Journal Created,Notă contabilă creată de registru
+Inbox,Mesaje primite
+Moldova Settlements,Registre de plăți Moldova
+Settlement Register Payment,Rând de plată al registrului
+Settlement Register Fee,Comisionul registrului
+Settlement Register Fee Debit,Debitarea comisionului din registru
+Settlement Register Deposit,Încasarea registrului
+Settlement Register Reference,Legătura registrului
+Settlements Source,Sursa registrelor
+"Debit account of the fee Journal Entry for NovaPay, MegaMega, and MAIB Ecomm. The MAIB POS register does not create that Journal Entry.","Contul de debit al notei contabile de comision pentru NovaPay, MegaMega și MAIB Ecomm. Registrul MAIB POS nu creează această notă contabilă."
+"MAIB POS only. Bank Transactions for the credit and the fee withdrawals are searched on this account.",Doar MAIB POS. Tranzacțiile bancare ale încasării și ale debitărilor de comision se caută pe acest cont.
+"NovaPay, MegaMega, and MAIB Ecomm. The MAIB POS register stores the Journal Entry on each fee debit.","NovaPay, MegaMega și MAIB Ecomm. În registrul MAIB POS nota contabilă este pe fiecare debitare de comision."
+"One row per fee withdrawal. Visa and Mastercard are separate bank transactions and must add up to the fee of that credit date.","Un rând pentru fiecare debitare a comisionului. Visa și Mastercard sunt tranzacții bancare separate și trebuie să însumeze comisionul acelei date de încasare."
+Shows Identify Payment Documents in the Actions menu.,Afișează în meniul Acțiuni punctul «Identifică automat documentele de plată».
+"When set, payment search matches Payment Entries with this mode. MAIB POS also matches POS invoices paid with this mode.","Dacă este setat, căutarea păstrează doar Payment Entry cu acest mod. Pentru MAIB POS limitează și facturile POS încasate cu acest mod."
+"When set, payment search matches Payment Entries with this mode. MAIB POS also matches POS invoices paid with this mode. The card payment posts to the clearing account. The bank credit moves that amount from clearing to the bank account.","Dacă este setat, căutarea păstrează doar Payment Entry cu acest mod. Pentru MAIB POS limitează și facturile POS încasate cu acest mod. Plata cu cardul se înregistrează în contul de compensare. Încasarea bancară mută suma din compensare în contul bancar."

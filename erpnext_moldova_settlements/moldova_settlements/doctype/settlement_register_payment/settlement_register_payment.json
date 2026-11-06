@@ -1,0 +1,289 @@
+{
+ "actions": [],
+ "creation": "2026-11-01 21:40:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "column_break_bxnv",
+  "external_number",
+  "receipt_date",
+  "transfer_date",
+  "customer",
+  "column_break_oned",
+  "payment_entry",
+  "sales_invoice",
+  "settlement_register_fee",
+  "settlement_register_deposit",
+  "payment_created",
+  "column_break_bwbk",
+  "row_number",
+  "row_bullet",
+  "section_break_osym",
+  "payment_amount",
+  "net_amount",
+  "fee_amount",
+  "currency",
+  "column_break_ovla",
+  "reversal_cash_amount",
+  "reversal_amount",
+  "reversed_fee",
+  "column_break_cqkx",
+  "cash_amount",
+  "valuta",
+  "instant_discount",
+  "section_break_xxrb",
+  "column_break_tuas",
+  "transaction_type",
+  "transaction_datetime",
+  "column_break_sidw",
+  "payer_name",
+  "card_number",
+  "column_break_bpeg",
+  "terminal_id",
+  "terminal_name"
+ ],
+ "fields": [
+  {
+   "allow_on_submit": 1,
+   "fieldname": "row_bullet",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Row Status",
+   "read_only": 1
+  },
+  {
+   "fieldname": "transfer_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Transfer Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "receipt_date",
+   "fieldtype": "Date",
+   "label": "Receipt Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "external_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "External Number",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "payment_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Payment Amount",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "fee_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Fee Amount",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "net_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Net Amount",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "payment_entry",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Payment Entry",
+   "options": "Payment Entry"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "sales_invoice",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Sales Invoice",
+   "options": "Sales Invoice"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "payer_name",
+   "fieldtype": "Data",
+   "label": "Payer Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "row_number",
+   "fieldtype": "Data",
+   "label": "Row Number",
+   "read_only": 1
+  },
+  {
+   "fieldname": "terminal_id",
+   "fieldtype": "Data",
+   "label": "Terminal ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "terminal_name",
+   "fieldtype": "Data",
+   "label": "Terminal Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "transaction_datetime",
+   "fieldtype": "Datetime",
+   "label": "Transaction Datetime",
+   "read_only": 1
+  },
+  {
+   "fieldname": "transaction_type",
+   "fieldtype": "Data",
+   "label": "Transaction Type",
+   "read_only": 1
+  },
+  {
+   "fieldname": "valuta",
+   "fieldtype": "Data",
+   "label": "Valuta",
+   "read_only": 1
+  },
+  {
+   "fieldname": "card_number",
+   "fieldtype": "Data",
+   "label": "Card Number",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cash_amount",
+   "fieldtype": "Currency",
+   "label": "Cash Amount",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reversal_amount",
+   "fieldtype": "Currency",
+   "label": "Reversal Amount",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reversal_cash_amount",
+   "fieldtype": "Currency",
+   "label": "Reversal Cash Amount",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reversed_fee",
+   "fieldtype": "Currency",
+   "label": "Reversed Fee",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "instant_discount",
+   "fieldtype": "Currency",
+   "label": "Instant Discount",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "settlement_register_fee",
+   "fieldtype": "Link",
+   "label": "Fee Row",
+   "options": "Settlement Register Fee",
+   "read_only": 1
+  },
+  {
+   "fieldname": "settlement_register_deposit",
+   "fieldtype": "Link",
+   "label": "Deposit Row",
+   "options": "Settlement Register Deposit",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "default": "0",
+   "fieldname": "payment_created",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Payment Created",
+   "read_only": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Currency",
+   "options": "Currency"
+  },
+  {
+   "fieldname": "column_break_bwbk",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_bxnv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_xxrb",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_tuas",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_sidw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_bpeg",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_osym",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_ovla",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_cqkx",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_oned",
+   "fieldtype": "Column Break"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-11-02 02:07:00.305278",
+ "modified_by": "Administrator",
+ "module": "Moldova Settlements",
+ "name": "Settlement Register Payment",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

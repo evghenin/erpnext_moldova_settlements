@@ -1,0 +1,150 @@
+A fee debit is not linked to a fee row.,Списание комиссии не связано со строкой комиссии.
+A payment row has no date.,В строке платежа нет даты.
+Accounts,Счета
+Actions,Действия
+A cancelled register cannot be changed.,Отменённый реестр изменить нельзя.
+Actions are available in Draft.,Пункты меню доступны в черновике.
+MAIB Ecomm,MAIB интернет
+MAIB POS,MAIB POS
+Amount,Сумма
+Attach the supplier file before saving.,Прикрепите файл поставщика перед сохранением.
+Bank Account,Банковский счёт
+Bank Transaction,Банковская транзакция
+Bank Transaction {0} has no reconciled Journal Entry.,У банковской транзакции {0} нет сверенной проводки.
+Bank Transaction {0} is already on register {1}.,Банковская транзакция {0} уже указана в реестре {1}.
+Bank Transaction {0} is already on this register.,Банковская транзакция {0} уже указана в этом реестре.
+Bank Transaction {0} is not reconciled.,Банковская транзакция {0} не сверена.
+Cannot read the date {0}.,Не удалось прочитать дату {0}.
+Cannot read the transaction time {0}.,Не удалось прочитать время транзакции {0}.
+Mode of Payment,Способ оплаты
+Card Number,Номер карты
+Cash Amount,Сумма наличных
+Clearing Account,Клиринговый счёт
+Fee {0} still has debits.,У комиссии {0} ещё есть списания.
+Fee Debits,Списания комиссии
+Fee Row,Строка комиссии
+Fees,Комиссии
+Company,Компания
+Company {0} already has a row for {1}.,У компании {0} уже есть строка для {1}.
+Create Missing Payments,Создать недостающие оплаты
+Create Payment If Missing,Создавать оплату если не найдена
+Creating payments is turned off for this source.,Создание оплат для этого источника выключено.
+Credit Date,Дата зачисления
+Currency,Валюта
+Customer,Клиент
+Default Customer,Клиент по умолчанию
+"On a submitted register, create a Payment Entry for a row that still has no link. Leave this off for MAIB POS until the invoice stores ReferintaTranzactiei.","На проведённом реестре создаёт Payment Entry для строки, которая так и осталась без связи. Для MAIB POS оставьте выключенным, пока на инвойсе нет ReferintaTranzactiei."
+"Written onto a payment row that has no customer. While the row has no Payment Entry or Sales Invoice, it can be changed or cleared. A selected customer limits the payment and invoice lists and is not replaced.","Записывается в строку платежа без клиента. Пока нет Payment Entry и Sales Invoice, его можно сменить или очистить. Выбранный клиент ограничивает списки оплаты и инвойса и не заменяется."
+Deposit {0} still has a Bank Transaction.,У зачисления {0} ещё указана банковская транзакция.
+Deposit Row,Строка зачисления
+Deposits,Зачисления
+Draft,Черновик
+External Number,Внешний номер
+Fee Account,Счёт комиссии
+Fee Amount,Сумма комиссии
+"File amounts do not match on row {0}: payment {1}, fee {2}, net {3}.","Суммы в файле не сходятся в строке {0}: платёж {1}, комиссия {2}, нетто {3}."
+Green,Зелёный
+Identify Fee Bank Transactions,Автоматически определить BT комиссионов
+Identify Deposit Bank Transactions,Автоматически определить BT зачислений
+Identify Payment Documents,Автоматически определить платежные документы
+Instant Discount,Мгновенная скидка
+Journal Entry,Журнальная проводка
+Net Amount,Нетто
+Payer Name,ФИО плательщика
+Payment {0} is already in register {1}.,Платёж {0} уже есть в реестре {1}.
+{0} is in {1} and not in this register.,{0} есть в {1} и отсутствует в этом реестре.
+{0} is not in another MAIB Ecomm register.,{0} нет ни в одном другом реестре MAIB Ecomm.
+Fee for {0} is not posted because that day differs from another MAIB Ecomm register.,Комиссия за {0} не проводится: этот день отличается от другого реестра MAIB Ecomm.
+Register {0} uses Payment Entry {1} from this register. Cancel {0} first.,Реестр {0} использует платёж {1} из этого реестра. Сначала отмените {0}.
+Register {0} uses Journal Entry {1} from this register. Cancel {0} first.,Реестр {0} использует проводку {1} из этого реестра. Сначала отмените {0}.
+Coverage,Покрытие
+"Payments another daily or monthly register has on these credit dates, and payments this register does not share with one.","Платежи другого дневного или месячного реестра на эти даты зачисления и платежи, которых нет ни в одном другом реестре."
+Payment {0} is already in this register.,Платёж {0} уже есть в этом реестре.
+Payment Amount,Сумма платежа
+Payment Created,Платёж создан реестром
+Payment Entry,Платёжное поручение
+Payment Entry {0} amount does not match the payment row.,Сумма платёжного поручения {0} не совпадает со строкой платежа.
+Payment Entry {0} belongs to another customer.,Платёжное поручение {0} принадлежит другому клиенту.
+Payment Entry {0} cannot be linked to this register.,Платёжное поручение {0} нельзя связать с этим реестром.
+Payment Entry {0} is in another currency.,Платёжное поручение {0} в другой валюте.
+Payment Entry {0} is not paid to the clearing account.,Платёжное поручение {0} проведено не на клиринговый счёт.
+Payments are created after the register is submitted.,Оплаты создаются после проведения реестра.
+Payment row needs one link: Payment Entry or Sales Invoice.,В строке платежа нужна одна связь: платёжное поручение или счёт продажи.
+Payments,Платежи
+Receipt Date,Дата приёма
+Reconciled,Сверен
+Red,Красный
+References,Связи
+Register {0} already exists.,Реестр {0} уже существует.
+Register Date,Дата реестра
+Register Number,Номер реестра
+Reversal Amount,Сумма реверса
+Reversal Cash Amount,Наличные реверса
+Reversed Fee,Комиссия реверса
+Row Number,Номер строки
+Row Status,Статус строки
+Sales Invoice,Счёт продажи
+Sales Invoice {0} amount does not match the payment row.,Сумма счёта продажи {0} не совпадает со строкой платежа.
+Sales Invoice {0} belongs to another customer.,Счёт продажи {0} принадлежит другому клиенту.
+Sales Invoice {0} cannot be linked to this register.,Счёт продажи {0} нельзя связать с этим реестром.
+Sales Invoice {0} is in another currency.,Счёт продажи {0} в другой валюте.
+Sales Invoice {0} is not paid to the clearing account.,Счёт продажи {0} оплачен не на клиринговый счёт.
+Search Posted Payments,Искать проведённые оплаты
+Searching for payments is turned off for this source.,Поиск оплат для этого источника выключен.
+Select a company for {0}.,Выберите компанию для {0}.
+Set Settlements Settings for {0}.,Заполните настройки реестров платежей для {0}.
+Set the bank account.,Укажите банковский счёт.
+Set the clearing account.,Укажите клиринговый счёт.
+Set the clearing account and the fee account.,Укажите клиринговый счёт и счёт комиссии.
+Set the company.,Укажите компанию.
+Settlement Register,Реестр платежей
+Source,Источник
+Source File,Файл источника
+Sources,Источники
+Status,Статус
+Supplier Inbox Email,Письмо входящей почты
+Terminal ID,Терминал
+Terminal Name,Название терминала
+The account {0} belongs to another company.,Счёт {0} относится к другой компании.
+The MAIB POS payment table was not found.,Таблица платежей MAIB POS не найдена.
+The MAIB POS report has no payment rows.,В отчёте MAIB POS нет платежей.
+The MAIB POS report has no transfer period.,В отчёте MAIB POS нет периода перечисления.
+The MAIB POS report must use one currency.,В отчёте MAIB POS должна быть одна валюта.
+The autorizat report does not create a register.,Отчёт autorizat не создаёт реестр.
+The bank account belongs to another company.,Банковский счёт относится к другой компании.
+"The file is not a NovaPay, MegaMega, or MAIB POS register.","Файл не является реестром NovaPay, MegaMega или MAIB POS."
+The payment table is missing columns.,В таблице платежей не хватает колонок.
+The payment table was not found.,Таблица платежей не найдена.
+The register has no payment rows.,В реестре нет платежей.
+The workbook has no worksheet.,В книге нет листа.
+This file is not a settlement register.,Этот файл не является реестром платежей.
+Total Fee,Комиссия
+Total Net,Нетто
+Total Payment,Итог оплат
+Totals,Итоги
+Transaction Datetime,Дата и время транзакции
+Transaction Type,Тип транзакции
+Transfer Amount,Сумма перевода
+Transfer Date,Дата перечисления
+Unreconciled,Не сверен
+Valuta,Валюта файла
+Yellow,Жёлтый
+"Fee debits for {0} do not match the fee amount.","Списания комиссии за {0} не сходятся с суммой комиссии."
+Fee debits are only used for MAIB POS.,Списания комиссии используются только для MAIB POS.
+Settlements Settings,Настройки реестров платежей
+Journal Created,Проводка создана реестром
+Inbox,Входящие
+Moldova Settlements,Реестры платежей Молдовы
+Settlement Register Payment,Строка платежа реестра
+Settlement Register Fee,Комиссия реестра
+Settlement Register Fee Debit,Списание комиссии реестра
+Settlement Register Deposit,Зачисление реестра
+Settlement Register Reference,Связь реестра
+Settlements Source,Источник реестров
+"Debit account of the fee Journal Entry for NovaPay, MegaMega, and MAIB Ecomm. The MAIB POS register does not create that Journal Entry.","Счёт дебета проводки комиссии для NovaPay, MegaMega и MAIB Ecomm. Реестр MAIB POS эту проводку не создаёт."
+"MAIB POS only. Bank Transactions for the credit and the fee withdrawals are searched on this account.",Только MAIB POS. Банковские транзакции зачисления и списаний комиссии ищутся по этому счёту.
+"NovaPay, MegaMega, and MAIB Ecomm. The MAIB POS register stores the Journal Entry on each fee debit.","NovaPay, MegaMega и MAIB Ecomm. В реестре MAIB POS проводка хранится на каждом списании комиссии."
+"One row per fee withdrawal. Visa and Mastercard are separate bank transactions and must add up to the fee of that credit date.","Одна строка на каждое списание комиссии. Visa и Mastercard — отдельные банковские транзакции, и их сумма должна равняться комиссии этой даты зачисления."
+Shows Identify Payment Documents in the Actions menu.,Показывает в меню «Действия» пункт «Автоматически определить платежные документы».
+"When set, payment search matches Payment Entries with this mode. MAIB POS also matches POS invoices paid with this mode.","Если указан, поиск оставляет только Payment Entry с этим способом. Для MAIB POS так же ограничивает кассовые счета, оплаченные этим способом."
+"When set, payment search matches Payment Entries with this mode. MAIB POS also matches POS invoices paid with this mode. The card payment posts to the clearing account. The bank credit moves that amount from clearing to the bank account.","Если указан, поиск оставляет только Payment Entry с этим способом. Для MAIB POS так же ограничивает кассовые счета, оплаченные этим способом. Карточная оплата садится на клиринговый счёт. Банковское зачисление переносит эту сумму с клиринга на банковский счёт."
