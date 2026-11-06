@@ -1,0 +1,14 @@
+[pre_model_sync]
+# Patches added in this section will be executed before doctypes are migrated
+# Read docs to understand patches: https://frappeframework.com/docs/v14/user/en/database-migrations
+erpnext_moldova_settlements.patches.rename_settlements_settings
+erpnext_moldova_settlements.patches.rename_acquirer_to_maib_pos
+erpnext_moldova_settlements.patches.rename_commissions_to_fees_and_charges
+erpnext_moldova_settlements.patches.rename_settlement_register_commission
+erpnext_moldova_settlements.patches.rename_fees_and_charges_to_fee
+
+[post_model_sync]
+# Patches added in this section will be executed after doctypes are migrated
+erpnext_moldova_settlements.patches.rename_card_mode_of_payment
+erpnext_moldova_settlements.patches.rename_settlement_register_fee_link
+erpnext_moldova_settlements.patches.fee_journal_reference

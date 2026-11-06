@@ -1,0 +1,315 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-11-03 10:02:28.650910",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "status",
+  "company",
+  "naming_series",
+  "column_break_main",
+  "register_number",
+  "posting_date",
+  "currency",
+  "column_break_zead",
+  "amended_from",
+  "supplier_inbox_email",
+  "source",
+  "source_file",
+  "accounts_section",
+  "clearing_account",
+  "fee_account",
+  "column_break_accounts",
+  "bank_account",
+  "mode_of_payment",
+  "totals_section",
+  "total_payment",
+  "column_break_jwnm",
+  "total_net",
+  "column_break_worp",
+  "total_fee",
+  "section_break_dncz",
+  "coverage_gaps",
+  "payments_section",
+  "payments",
+  "fees_section",
+  "fees",
+  "fee_debits_section",
+  "fee_debits",
+  "deposits_section",
+  "deposits",
+  "reference_rows"
+ ],
+ "fields": [
+  {
+   "fieldname": "register_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Register Number",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Draft\nUnreconciled\nReconciled",
+   "read_only": 1
+  },
+  {
+   "fieldname": "source",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Source",
+   "options": "NovaPay\nMegaMega\nMAIB POS\nMAIB Ecomm",
+   "read_only": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Register Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "supplier_inbox_email",
+   "fieldtype": "Data",
+   "label": "Supplier Inbox Email",
+   "read_only": 1
+  },
+  {
+   "fieldname": "source_file",
+   "fieldtype": "Attach",
+   "label": "Source File"
+  },
+  {
+   "fieldname": "accounts_section",
+   "fieldtype": "Section Break",
+   "label": "Accounts"
+  },
+  {
+   "fieldname": "clearing_account",
+   "fieldtype": "Link",
+   "label": "Clearing Account",
+   "link_filters": "[[\"Account\",\"company\",\"=\",\"eval:doc.company\"],[\"Account\",\"is_group\",\"=\",0]]",
+   "options": "Account"
+  },
+  {
+   "fieldname": "fee_account",
+   "fieldtype": "Link",
+   "label": "Fee Account",
+   "link_filters": "[[\"Account\",\"company\",\"=\",\"eval:doc.company\"],[\"Account\",\"is_group\",\"=\",0]]",
+   "options": "Account"
+  },
+  {
+   "fieldname": "column_break_accounts",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "bank_account",
+   "fieldtype": "Link",
+   "label": "Bank Account",
+   "link_filters": "[[\"Bank Account\",\"company\",\"=\",\"eval:doc.company\"]]",
+   "options": "Bank Account"
+  },
+  {
+   "description": "When set, payment search matches Payment Entries with this mode. MAIB POS also matches POS invoices paid with this mode.",
+   "fieldname": "mode_of_payment",
+   "fieldtype": "Link",
+   "label": "Mode of Payment",
+   "options": "Mode of Payment"
+  },
+  {
+   "fieldname": "totals_section",
+   "fieldtype": "Section Break",
+   "label": "Totals"
+  },
+  {
+   "fieldname": "total_payment",
+   "fieldtype": "Currency",
+   "label": "Total Payment",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_fee",
+   "fieldtype": "Currency",
+   "label": "Total Fee",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_net",
+   "fieldtype": "Currency",
+   "label": "Total Net",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.source=='MAIB Ecomm'",
+   "description": "Payments another daily or monthly register has on these credit dates, and payments this register does not share with one.",
+   "fieldname": "coverage_gaps",
+   "fieldtype": "Small Text",
+   "label": "Coverage",
+   "read_only": 1
+  },
+  {
+   "fieldname": "payments_section",
+   "fieldtype": "Section Break",
+   "label": "Payments"
+  },
+  {
+   "fieldname": "payments",
+   "fieldtype": "Table",
+   "label": "Payments",
+   "options": "Settlement Register Payment"
+  },
+  {
+   "depends_on": "eval:doc.source=='MAIB POS'",
+   "fieldname": "fee_debits_section",
+   "fieldtype": "Section Break",
+   "label": "Fee Debits"
+  },
+  {
+   "allow_on_submit": 1,
+   "depends_on": "eval:doc.source=='MAIB POS'",
+   "description": "One row per fee withdrawal. Visa and Mastercard are separate bank transactions and must add up to the fee of that credit date.",
+   "fieldname": "fee_debits",
+   "fieldtype": "Table",
+   "label": "Fee Debits",
+   "options": "Settlement Register Fee Debit"
+  },
+  {
+   "fieldname": "deposits_section",
+   "fieldtype": "Section Break",
+   "label": "Deposits"
+  },
+  {
+   "fieldname": "deposits",
+   "fieldtype": "Table",
+   "label": "Deposits",
+   "options": "Settlement Register Deposit"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "reference_rows",
+   "fieldtype": "Table",
+   "hidden": 1,
+   "label": "References",
+   "options": "Settlement Register Reference"
+  },
+  {
+   "fieldname": "column_break_jwnm",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_worp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "fees_section",
+   "fieldtype": "Section Break",
+   "label": "Fees"
+  },
+  {
+   "fieldname": "fees",
+   "fieldtype": "Table",
+   "label": "Fees",
+   "options": "Settlement Register Fee"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Settlement Register",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "section_break_dncz",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "STR-.YYYY.-",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "STR-.YYYY.-",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_zead",
+   "fieldtype": "Column Break"
+  }
+ ],
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-11-04 01:01:08.488763",
+ "modified_by": "Administrator",
+ "module": "Moldova Settlements",
+ "name": "Settlement Register",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "read": 1,
+   "role": "System Manager",
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "read": 1,
+   "role": "Accounts Manager",
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "cancel": 1,
+   "create": 1,
+   "read": 1,
+   "role": "Accounts User",
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "search_fields": "register_number,source,company",
+ "show_title_field_in_link": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "register_number",
+ "track_changes": 1
+}
