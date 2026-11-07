@@ -215,11 +215,22 @@ def _parse_maib(rows, filename):
 	return {
 		"source": "MAIB Ecomm" if ecomm else "MAIB POS",
 		"register_number": f"MAIB-{terminal}-{period[0]}-{period[1]}",
-		"posting_date": period[0],
+		"posting_date": _maib_register_date(filename, period),
 		"currency": next(iter(currencies)),
 		"shipment_numbers": [row["external_number"] for row in payments],
 		"payments": payments,
 	}
+
+
+def _maib_register_date(filename, period):
+	"""Report date from the file name (decontatYYYYMMDD). Otherwise the period end."""
+	match = re.search(r"decontat(\d{8})", (filename or "").lower())
+	if match:
+		try:
+			return datetime.strptime(match.group(1), "%Y%m%d").date().isoformat()
+		except ValueError:
+			pass
+	return period[1]
 
 
 def _report_period(title):
