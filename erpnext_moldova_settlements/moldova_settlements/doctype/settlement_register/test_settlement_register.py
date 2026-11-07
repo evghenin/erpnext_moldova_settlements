@@ -7,6 +7,7 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 from frappe.utils.file_manager import save_file
 
+from erpnext_moldova_settlements.moldova_settlements.parsers.register_file import DEPOSIT_PATTERNS
 from erpnext_moldova_settlements.moldova_settlements.register import (
 	_invoice_reference_field,
 	create_payment_entries,
@@ -115,7 +116,9 @@ class TestSettlementRegister(FrappeTestCase):
 	def test_cancelled_register_can_be_imported_again(self):
 		doc = self.from_file("novapay", "Реестр платежей №00000012315.XLSX")
 		doc.submit()
+		journal = doc.fees[0].journal_entry
 		doc.cancel()
+		self.assertEqual(frappe.db.get_value("Journal Entry", journal, "docstatus"), 2)
 		again = self.from_file("novapay", "Реестр платежей №00000012315.XLSX")
 		self.assertEqual(again.register_number, "NP-00000012315")
 		self.assertEqual(doc.register_number, "NP-00000012315")
@@ -127,6 +130,25 @@ class TestSettlementRegister(FrappeTestCase):
 		third.source_file = again.source_file
 		third.company = COMPANY
 		self.assertRaises(frappe.ValidationError, third.insert)
+
+	def test_journal_entry_can_be_cancelled_while_the_register_points_at_it(self):
+		from frappe.desk.form.linked_with import get_submitted_linked_docs
+
+		doc = self.from_file("novapay", "Реестр платежей №00000015659.XLSX")
+		doc.submit()
+		journal = doc.fees[0].journal_entry
+		linked = get_submitted_linked_docs("Settlement Register", doc.name)["docs"]
+		self.assertIn({"doctype": "Journal Entry", "name": journal, "docstatus": 1}, linked)
+		ignored = get_submitted_linked_docs(
+			"Settlement Register", doc.name, ["Journal Entry", "Payment Entry"]
+		)["docs"]
+		self.assertFalse(any(row["doctype"] == "Journal Entry" for row in ignored))
+		frappe.get_doc("Journal Entry", journal).cancel()
+		self.assertEqual(frappe.db.get_value("Journal Entry", journal, "docstatus"), 2)
+		self.assertFalse(frappe.db.get_value("Settlement Register Fee", {"parent": doc.name}, "journal_entry"))
+		doc.reload()
+		doc.cancel()
+		self.assertEqual(doc.docstatus, 2)
 
 	def test_manual_payment_link_must_match_amount_account_and_currency(self):
 		doc = self.register(
@@ -597,6 +619,11 @@ class TestSettlementRegister(FrappeTestCase):
 	def _settings(self, create_payment_if_missing, search_payments):
 		settings = frappe.get_single("Settlements Settings")
 		settings.sources = [row for row in settings.sources if row.company != COMPANY]
+		for row in settings.sources:
+			if not row.supplier:
+				row.supplier = self.supplier
+			if not row.deposit_description:
+				row.deposit_description = DEPOSIT_PATTERNS.get(row.source) or "Settlement"
 		for source in ("NovaPay", "MegaMega", "MAIB POS", "MAIB Ecomm"):
 			settings.append(
 				"sources",
