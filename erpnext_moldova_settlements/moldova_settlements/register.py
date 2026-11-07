@@ -117,6 +117,7 @@ def before_submit_register(doc):
 
 
 def before_cancel_register(doc):
+	doc.ignore_linked_doctypes = ("Journal Entry", "Payment Entry")
 	_block_adopted_documents(doc)
 	for row in doc.payments:
 		if row.payment_created and row.payment_entry:
@@ -1287,6 +1288,24 @@ def _filled_reference(row):
 
 def _is_reversal(row):
 	return any(flt(row.get(field)) for field in ("reversal_amount", "reversal_cash_amount", "reversed_fee"))
+
+
+def release_journal_links(register, journal_entry):
+	for doctype in (
+		"Settlement Register Fee",
+		"Settlement Register Fee Debit",
+		"Settlement Register Deposit",
+		"Settlement Register Reference",
+	):
+		for name in frappe.get_all(
+			doctype,
+			filters={"parent": register, "journal_entry": journal_entry},
+			pluck="name",
+		):
+			values = {"journal_entry": None}
+			if doctype == "Settlement Register Fee":
+				values["journal_created"] = 0
+			frappe.db.set_value(doctype, name, values, update_modified=False)
 
 
 def _cancel_linked(doctype, name):

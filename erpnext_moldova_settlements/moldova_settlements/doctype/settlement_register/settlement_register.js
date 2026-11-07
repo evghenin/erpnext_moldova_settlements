@@ -1,5 +1,6 @@
 frappe.ui.form.on("Settlement Register", {
 	refresh(frm) {
+		frm.ignore_doctypes_on_cancel_all = ["Journal Entry", "Payment Entry"];
 		show_fields(frm);
 		set_row_indicators(frm);
 		set_payment_queries(frm);

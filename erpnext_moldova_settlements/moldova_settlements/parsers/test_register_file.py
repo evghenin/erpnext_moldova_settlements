@@ -52,12 +52,18 @@ class TestRegisterFile(unittest.TestCase):
 		parsed = _parse("maib pos", "aDetailPayRep_lunar_decontat20261002_HOTEL LIFE SRL SmartPOS.xlsx")
 		self.assertEqual(parsed["source"], "MAIB POS")
 		self.assertEqual(parsed["register_number"], "MAIB-S0101949-2026-09-01-2026-09-30")
+		self.assertEqual(parsed["posting_date"], "2026-10-02")
 		self.assertEqual(parsed["currency"], "MDL")
 		self.assertEqual(len(parsed["payments"]), 89)
 		self.assertEqual(len({row["transfer_date"] for row in parsed["payments"]}), 27)
 		self.assertEqual(sum(row["payment_amount"] for row in parsed["payments"]), Decimal("105767.70"))
 		self.assertEqual(sum(row["fee_amount"] for row in parsed["payments"]), Decimal("1422.31"))
 		self.assertEqual(sum(row["net_amount"] for row in parsed["payments"]), Decimal("104345.39"))
+
+	def test_maib_without_report_date_uses_the_period_end(self):
+		path = EXAMPLES / "maib pos" / "aDetailPayEcommRep_lunar_decontat20261002_Ecomm HOTEL LIFE S.R.L.xlsx"
+		parsed = parse_register_file(str(path), "ecomm-monthly.xlsx")
+		self.assertEqual(parsed["posting_date"], "2026-09-30")
 
 	def test_maib_autorizat_is_rejected(self):
 		path = EXAMPLES / "maib pos" / "aDetailPayRep_lunar_autorizat20261002_HOTEL LIFE SRL SmartPOS.xlsx"
@@ -68,6 +74,7 @@ class TestRegisterFile(unittest.TestCase):
 		parsed = _parse("maib pos", "aDetailPayEcommRep_decontat20260909_Ecomm HOTEL LIFE S.R.L.xlsx")
 		self.assertEqual(parsed["source"], "MAIB Ecomm")
 		self.assertEqual(parsed["register_number"], "MAIB-E0103299-2026-09-09-2026-09-09")
+		self.assertEqual(parsed["posting_date"], "2026-09-09")
 		row = parsed["payments"][0]
 		self.assertEqual(row["external_number"], "625107054986")
 		self.assertEqual(row["payment_amount"], Decimal("1940.00"))

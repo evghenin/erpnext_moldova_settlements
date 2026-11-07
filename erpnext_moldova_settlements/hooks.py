@@ -154,7 +154,10 @@ doc_events = {
 	"Bank Transaction": {
 		"on_update": "erpnext_moldova_settlements.moldova_settlements.register.refresh_registers_for_bank_transaction",
 		"on_update_after_submit": "erpnext_moldova_settlements.moldova_settlements.register.refresh_registers_for_bank_transaction",
-	}
+	},
+	"Journal Entry": {
+		"before_cancel": "erpnext_moldova_settlements.moldova_settlements.journal_entry.before_cancel",
+	},
 }
 
 # Scheduled Tasks
