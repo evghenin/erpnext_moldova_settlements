@@ -10,6 +10,7 @@ from frappe.utils.file_manager import save_file
 from erpnext_moldova_settlements.moldova_settlements.register import (
 	_invoice_reference_field,
 	create_payment_entries,
+	fill_deposit_transactions,
 	fill_fee_debits,
 	fill_payment_documents,
 )
@@ -27,6 +28,7 @@ test_ignore = [
 	"Mode of Payment",
 	"Payment Entry",
 	"Sales Invoice",
+	"Supplier",
 	"Settlement Register",
 	"Settlement Register Deposit",
 	"Settlement Register Fee",
@@ -46,6 +48,8 @@ class TestSettlementRegister(FrappeTestCase):
 		cls.income = _ledger(COMPANY, "Income", "_Settlements Income", "Income Account")
 		cls.customer = _customer("_Settlements Customer")
 		cls.other_customer = _customer("_Settlements Other Customer")
+		cls.supplier = _supplier("_Settlements Payer")
+		cls.other_supplier = _supplier("_Settlements Other Payer")
 		cls.mode = _mode_of_payment(cls.clearing)
 		cls.bank_account = _bank_account(cls.clearing)
 		cls.item = _item()
@@ -295,6 +299,112 @@ class TestSettlementRegister(FrappeTestCase):
 		fee_debit = [row.debit_in_account_currency for row in journal.accounts if row.account == self.fee]
 		self.assertEqual([round(amount, 2) for amount in fee_debit], [59.2])
 
+	def test_novapay_deposit_search_links_the_net_payout(self):
+		doc = self.register(
+			"NovaPay",
+			"NP-payout",
+			[self.row(100, 3, 97, "SHMD-PAYOUT")],
+		)
+		description = (
+			"PLATA PENTRU RAMBURS PRIMIT CONFORM CONTRACT NR 929 DIN 19.08.2024"
+			"A. TO TAL 97 MDL, FARA TVA"
+		)
+		match = self.bank_transaction(deposit=97, description=description, supplier=self.supplier)
+		self.bank_transaction(deposit=100, description=description, supplier=self.supplier)
+		self.bank_transaction(deposit=97, description="Incasare din alta sursa", supplier=self.supplier)
+		fill_deposit_transactions(doc)
+		self.assertEqual(doc.deposits[0].bank_transaction, match)
+		self.assertEqual(round(doc.deposits[0].transfer_amount, 2), 97)
+
+	def test_novapay_deposit_search_does_not_replace_a_chosen_payout(self):
+		doc = self.register(
+			"NovaPay",
+			"NP-kept-payout",
+			[self.row(100, 3, 97, "SHMD-KEPT")],
+		)
+		chosen = self.bank_transaction(deposit=10, description="manual")
+		doc.deposits[0].bank_transaction = chosen
+		self.bank_transaction(
+			deposit=97,
+			description="PLATA PENTRU RAMBURS PRIMIT CONFORM CONTRACT NR 929",
+			supplier=self.supplier,
+		)
+		fill_deposit_transactions(doc)
+		self.assertEqual(doc.deposits[0].bank_transaction, chosen)
+
+	def test_novapay_deposit_search_leaves_the_row_empty_when_two_payouts_match(self):
+		doc = self.register(
+			"NovaPay",
+			"NP-two-payouts",
+			[self.row(100, 3, 97, "SHMD-TWO")],
+		)
+		description = "PLATA PENTRU RAMBURS PRIMIT"
+		self.bank_transaction(deposit=97, description=description, supplier=self.supplier)
+		self.bank_transaction(deposit=97, description=description, supplier=self.supplier)
+		fill_deposit_transactions(doc)
+		self.assertFalse(doc.deposits[0].bank_transaction)
+
+	def test_maib_ecomm_deposit_search_links_the_net_payout(self):
+		doc = self.register(
+			"MAIB Ecomm",
+			"MAIB-E-payout",
+			[self.row(100, 7.32, 92.68, "625107054986")],
+		)
+		description = (
+			"Transfer pentru operatiuni de accep tare a cardurilor la plata Ecomm "
+			"HO TEL LIFE S.R.L. ( MDL 92.68 )"
+		)
+		match = self.bank_transaction(deposit=92.68, description=description, supplier=self.supplier)
+		self.bank_transaction(
+			deposit=92.68,
+			description="Transfer pentru operatiuni de acceptare a cardurilor",
+			supplier=self.supplier,
+		)
+		fill_deposit_transactions(doc)
+		self.assertEqual(doc.deposits[0].bank_transaction, match)
+		self.assertEqual(round(doc.deposits[0].transfer_amount, 2), 92.68)
+
+	def test_maib_pos_deposit_search_skips_an_ecomm_payout(self):
+		doc = self.register(
+			"MAIB POS",
+			"MAIB-pos-not-ecomm",
+			[self.row(92.68, 0, 92.68, "RRN-POS-NET")],
+		)
+		self.bank_transaction(
+			deposit=92.68,
+			description=(
+				"Transfer pentru operatiuni de acceptare a cardurilor la plata Ecomm "
+				"HOTEL LIFE S.R.L. ( MDL 92.68 )"
+			),
+			supplier=self.supplier,
+		)
+		match = self.bank_transaction(
+			deposit=92.68,
+			description="Transfer pentru operatiuni de acceptare a cardurilor",
+			supplier=self.supplier,
+		)
+		fill_deposit_transactions(doc)
+		self.assertEqual(doc.deposits[0].bank_transaction, match)
+
+	def test_megamega_deposit_search_links_the_net_payout(self):
+		doc = self.register(
+			"MegaMega",
+			"MM-payout",
+			[self.row(100, 18.6, 81.4, "MM-1")],
+		)
+		match = self.bank_transaction(
+			deposit=81.4,
+			description="Conform contractul nr 15 din 01.09.2026",
+			supplier=self.supplier,
+		)
+		self.bank_transaction(
+			deposit=81.4,
+			description="Conform contractul nr 15 din 01.09.2026",
+			supplier=self.other_supplier,
+		)
+		fill_deposit_transactions(doc)
+		self.assertEqual(doc.deposits[0].bank_transaction, match)
+
 	def test_fee_debit_search_adds_missing_rows_and_keeps_existing_ones(self):
 		doc = self.register(
 			"MAIB POS",
@@ -302,8 +412,8 @@ class TestSettlementRegister(FrappeTestCase):
 			[self.row(100, 3, 97, "RRN-DEBIT")],
 		)
 		description = "Retinerea comisionului-operatiunile acceptare card"
-		first = self.bank_transaction(withdrawal=1, description=description)
-		second = self.bank_transaction(withdrawal=2, description=description)
+		first = self.bank_transaction(withdrawal=1, description=description, supplier=self.supplier)
+		second = self.bank_transaction(withdrawal=2, description=description, supplier=self.supplier)
 		doc.append(
 			"fee_debits",
 			{"settlement_register_fee": doc.fees[0].name, "bank_transaction": first, "amount": 1},
@@ -447,7 +557,7 @@ class TestSettlementRegister(FrappeTestCase):
 		invoice.submit()
 		return invoice.name
 
-	def bank_transaction(self, withdrawal=0, deposit=0, description=""):
+	def bank_transaction(self, withdrawal=0, deposit=0, description="", supplier=None):
 		doc = frappe.new_doc("Bank Transaction")
 		doc.date = "2026-09-07"
 		doc.company = COMPANY
@@ -456,6 +566,9 @@ class TestSettlementRegister(FrappeTestCase):
 		doc.withdrawal = withdrawal
 		doc.deposit = deposit
 		doc.description = description
+		if supplier:
+			doc.party_type = "Supplier"
+			doc.party = supplier
 		doc.insert()
 		doc.submit()
 		return doc.name
@@ -495,6 +608,7 @@ class TestSettlementRegister(FrappeTestCase):
 					"bank_account": self.bank_account,
 					"mode_of_payment": self.mode,
 					"default_customer": self.customer,
+					"supplier": self.supplier,
 					"search_payments": search_payments,
 					"create_payment_if_missing": create_payment_if_missing if source != "MAIB POS" else 0,
 				},
@@ -556,6 +670,21 @@ def _ledger(company, root_type, account_name, account_type=None):
 	)
 	account.insert(ignore_permissions=True)
 	return account.name
+
+
+def _supplier(name):
+	existing = frappe.db.get_value("Supplier", {"supplier_name": name}, "name")
+	if existing:
+		return existing
+	supplier = frappe.get_doc(
+		{
+			"doctype": "Supplier",
+			"supplier_name": name,
+			"supplier_group": "All Supplier Groups",
+		}
+	)
+	supplier.insert(ignore_permissions=True)
+	return supplier.name
 
 
 def _customer(name):

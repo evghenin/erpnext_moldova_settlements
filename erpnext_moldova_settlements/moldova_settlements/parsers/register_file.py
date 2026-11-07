@@ -13,6 +13,12 @@ from erpnext_moldova_settlements.moldova_settlements.parsers.xlsx import workshe
 MONEY = Decimal("0.01")
 CARD_FEE_DESCRIPTION = "Retinerea comisionului-operatiunile acceptare card"
 CARD_DEPOSIT_DESCRIPTION = "Transfer pentru operatiuni de acceptare a cardurilor"
+DEPOSIT_PATTERNS = {
+	"NovaPay": "PLATA PENTRU RAMBURS",
+	"MegaMega": "Conform contractul",
+	"MAIB POS": CARD_DEPOSIT_DESCRIPTION,
+	"MAIB Ecomm": "Transfer pentru operatiuni de acceptare a cardurilor la plata Ecomm",
+}
 
 
 class AutorizatReport(Exception):

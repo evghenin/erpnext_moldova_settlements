@@ -72,7 +72,7 @@ The row colour in the grid shows the same thing without opening the status: gree
 
 ## What is set once
 
-Settings for each company and each payment system hold the clearing account, the fee account, the mode of payment, and the default customer. For MAIB cards they also hold the bank account used to look up bank rows. Looking up payments that are already submitted, and creating a payment when nothing was found, are switched on separately. For cards, creation stays off until the invoice carries the transaction reference: amount and time cannot reliably tell a new payment from a sale that was already rung up.
+Settings for each company and each payment system hold the clearing account, the fee account, the mode of payment, and the default customer. They also hold the bank account used to look up bank rows, the supplier who sends the payout, and the text that must appear in that payout. Choosing a source fills the default text: NovaPay “PLATA PENTRU RAMBURS”, MegaMega “Conform contractul”, MAIB POS “Transfer pentru operatiuni de acceptare a cardurilor”, and MAIB Ecomm “la plata Ecomm”. A payout is linked only when the bank transaction names that supplier. Looking up payments that are already submitted, and creating a payment when nothing was found, are switched on separately. For cards, creation stays off until the invoice carries the transaction reference: amount and time cannot reliably tell a new payment from a sale that was already rung up.
 
 Form labels are English. The screen is translated into Russian and Romanian.
 

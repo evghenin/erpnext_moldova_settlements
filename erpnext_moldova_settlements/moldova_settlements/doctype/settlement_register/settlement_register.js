@@ -3,6 +3,9 @@ frappe.ui.form.on("Settlement Register", {
 		show_fields(frm);
 		set_row_indicators(frm);
 		set_payment_queries(frm);
+		frm.set_query("bank_account", () => ({
+			filters: {company: frm.doc.company},
+		}));
 		lock_linked_customers(frm);
 		if (frm.doc.docstatus === 2) {
 			return;
@@ -12,15 +15,17 @@ frappe.ui.form.on("Settlement Register", {
 				filters: {parent: frm.doc.name},
 			}));
 		}
+		if (frm.doc.source) {
+			frm.add_custom_button(
+				__("Identify Deposit Bank Transactions"),
+				() => run_action(frm, "identify_deposits"),
+				__("Actions")
+			);
+		}
 		if (frm.doc.source === "MAIB POS") {
 			frm.add_custom_button(
 				__("Identify Fee Bank Transactions"),
 				() => run_action(frm, "identify_fee_debits"),
-				__("Actions")
-			);
-			frm.add_custom_button(
-				__("Identify Deposit Bank Transactions"),
-				() => run_action(frm, "identify_deposits"),
 				__("Actions")
 			);
 		}
@@ -70,9 +75,8 @@ frappe.ui.form.on("Settlement Register Payment", {
 });
 
 function show_fields(frm) {
-	const maibPos = frm.doc.source === "MAIB POS";
-	frm.toggle_display("bank_account", maibPos);
-	frm.toggle_display("fee_account", !maibPos);
+	frm.toggle_display("bank_account", true);
+	frm.toggle_display("fee_account", frm.doc.source !== "MAIB POS");
 }
 
 function set_payment_queries(frm) {

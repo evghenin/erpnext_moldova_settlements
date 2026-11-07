@@ -14,6 +14,8 @@
   "clearing_account",
   "fee_account",
   "bank_account",
+  "supplier",
+  "deposit_description",
   "mode_of_payment"
  ],
  "fields": [
@@ -52,12 +54,27 @@
    "options": "Account"
   },
   {
-   "description": "MAIB POS only. Bank Transactions for the credit and the fee withdrawals are searched on this account.",
+   "description": "Deposit Bank Transactions are searched on this account. MAIB POS also searches fee withdrawals here.",
    "fieldname": "bank_account",
    "fieldtype": "Link",
    "label": "Bank Account",
    "link_filters": "[[\"Bank Account\",\"company\",\"=\",\"eval:doc.company\"]]",
    "options": "Bank Account"
+  },
+  {
+   "description": "Payouts are linked only when the Bank Transaction party is this supplier. MAIB POS fee withdrawals use the same supplier.",
+   "fieldname": "supplier",
+   "fieldtype": "Link",
+   "label": "Supplier",
+   "options": "Supplier",
+   "reqd": 1
+  },
+  {
+   "description": "Text that must appear in the payout description. Choosing a source fills the default for that source.",
+   "fieldname": "deposit_description",
+   "fieldtype": "Data",
+   "label": "Deposit Description",
+   "reqd": 1
   },
   {
    "description": "When set, payment search matches Payment Entries with this mode. MAIB POS also matches POS invoices paid with this mode. The card payment posts to the clearing account. The bank credit moves that amount from clearing to the bank account.",
