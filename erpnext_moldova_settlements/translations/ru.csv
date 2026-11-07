@@ -142,7 +142,14 @@ Settlement Register Deposit,Зачисление реестра
 Settlement Register Reference,Связь реестра
 Settlements Source,Источник реестров
 "Debit account of the fee Journal Entry for NovaPay, MegaMega, and MAIB Ecomm. The MAIB POS register does not create that Journal Entry.","Счёт дебета проводки комиссии для NovaPay, MegaMega и MAIB Ecomm. Реестр MAIB POS эту проводку не создаёт."
-"MAIB POS only. Bank Transactions for the credit and the fee withdrawals are searched on this account.",Только MAIB POS. Банковские транзакции зачисления и списаний комиссии ищутся по этому счёту.
+"Deposit Bank Transactions are searched on this account. MAIB POS also searches fee withdrawals here.",На этом счёте ищутся банковские транзакции зачисления. MAIB POS здесь же ищет списания комиссии.
+"Payouts are linked only when the Bank Transaction party is this supplier. MAIB POS fee withdrawals use the same supplier.",Выплата привязывается, только если контрагент банковской транзакции — этот поставщик. Списания комиссии MAIB POS проверяются по тому же поставщику.
+"Text that must appear in the payout description. Choosing a source fills the default for that source.",Текст, который должен быть в описании выплаты. При выборе источника подставляется значение по умолчанию для этого источника.
+Supplier,Поставщик
+Deposit Description,Описание зачисления
+Set the supplier for {0}.,Укажите поставщика для {0}.
+Set the deposit description for {0}.,Укажите описание зачисления для {0}.
+Set the supplier and the deposit description.,Укажите поставщика и описание зачисления.
 "NovaPay, MegaMega, and MAIB Ecomm. The MAIB POS register stores the Journal Entry on each fee debit.","NovaPay, MegaMega и MAIB Ecomm. В реестре MAIB POS проводка хранится на каждом списании комиссии."
 "One row per fee withdrawal. Visa and Mastercard are separate bank transactions and must add up to the fee of that credit date.","Одна строка на каждое списание комиссии. Visa и Mastercard — отдельные банковские транзакции, и их сумма должна равняться комиссии этой даты зачисления."
 Shows Identify Payment Documents in the Actions menu.,Показывает в меню «Действия» пункт «Автоматически определить платежные документы».

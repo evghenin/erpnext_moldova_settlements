@@ -9,7 +9,6 @@ from frappe.model.naming import set_new_name
 from frappe.utils import cint, flt, getdate
 
 from erpnext_moldova_settlements.moldova_settlements.parsers.register_file import (
-	CARD_DEPOSIT_DESCRIPTION,
 	CARD_FEE_DESCRIPTION,
 	AmountMismatch,
 	AutorizatReport,
@@ -211,8 +210,7 @@ def fill_payment_documents(doc):
 def fill_fee_debits(doc):
 	if doc.source != "MAIB POS":
 		return
-	if not doc.bank_account:
-		frappe.throw(_("Set the bank account."))
+	settings = _payout_settings(doc)
 	used = _linked_bank_transactions(doc)
 	for fee in doc.fees:
 		existing = [
@@ -225,7 +223,9 @@ def fill_fee_debits(doc):
 			continue
 		fresh = [
 			bt
-			for bt in _bank_transactions(doc, fee.credit_date, CARD_FEE_DESCRIPTION, "withdrawal")
+			for bt in _bank_transactions(
+				doc, fee.credit_date, CARD_FEE_DESCRIPTION, "withdrawal", settings.supplier
+			)
 			if bt.name not in used
 		]
 		incoming = sum(flt(bt.withdrawal) for bt in fresh)
@@ -245,19 +245,19 @@ def fill_fee_debits(doc):
 
 
 def fill_deposit_transactions(doc):
-	if doc.source != "MAIB POS":
-		return
-	if not doc.bank_account:
-		frappe.throw(_("Set the bank account."))
+	settings = _payout_settings(doc)
+	description = settings.deposit_description
 	used = _linked_bank_transactions(doc)
 	for row in doc.deposits:
 		if row.bank_transaction:
 			continue
 		matches = [
 			bt
-			for bt in _bank_transactions(doc, row.credit_date, CARD_DEPOSIT_DESCRIPTION, "deposit")
+			for bt in _bank_transactions(doc, row.credit_date, description, "deposit", settings.supplier)
 			if bt.name not in used and flt(bt.deposit, 2) == flt(row.transfer_amount, 2)
 		]
+		if "ecomm" not in _normalize(description):
+			matches = [bt for bt in matches if "ecomm" not in _normalize(bt.description)]
 		if len(matches) != 1:
 			continue
 		row.bank_transaction = matches[0].name
@@ -384,6 +384,8 @@ def get_source_settings(company, source):
 			"search_payments",
 			"create_payment_if_missing",
 			"default_customer",
+			"supplier",
+			"deposit_description",
 		],
 		limit=1,
 	)
@@ -1094,7 +1096,16 @@ def _linked_documents(doc):
 	return payments, invoices
 
 
-def _bank_transactions(doc, credit_date, description, amount_field):
+def _payout_settings(doc):
+	settings = get_source_settings(doc.company, doc.source)
+	if not settings or not settings.supplier or not settings.deposit_description:
+		frappe.throw(_("Set the supplier and the deposit description."))
+	if not doc.bank_account:
+		frappe.throw(_("Set the bank account."))
+	return settings
+
+
+def _bank_transactions(doc, credit_date, description, amount_field, supplier):
 	rows = frappe.get_all(
 		"Bank Transaction",
 		filters={
@@ -1104,13 +1115,16 @@ def _bank_transactions(doc, credit_date, description, amount_field):
 			"docstatus": 1,
 			"status": ["!=", "Cancelled"],
 		},
-		fields=["name", "description", "withdrawal", "deposit"],
+		fields=["name", "description", "withdrawal", "deposit", "party_type", "party"],
 	)
 	pattern = _normalize(description)
 	return [
 		row
 		for row in rows
-		if flt(row.get(amount_field)) > 0 and pattern in _normalize(row.description)
+		if flt(row.get(amount_field)) > 0
+		and pattern in _normalize(row.description)
+		and row.party_type == "Supplier"
+		and row.party == supplier
 	]
 
 

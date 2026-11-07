@@ -142,7 +142,14 @@ Settlement Register Deposit,Încasarea registrului
 Settlement Register Reference,Legătura registrului
 Settlements Source,Sursa registrelor
 "Debit account of the fee Journal Entry for NovaPay, MegaMega, and MAIB Ecomm. The MAIB POS register does not create that Journal Entry.","Contul de debit al notei contabile de comision pentru NovaPay, MegaMega și MAIB Ecomm. Registrul MAIB POS nu creează această notă contabilă."
-"MAIB POS only. Bank Transactions for the credit and the fee withdrawals are searched on this account.",Doar MAIB POS. Tranzacțiile bancare ale încasării și ale debitărilor de comision se caută pe acest cont.
+"Deposit Bank Transactions are searched on this account. MAIB POS also searches fee withdrawals here.",Pe acest cont se caută tranzacțiile bancare ale încasării. MAIB POS caută aici și debitările de comision.
+"Payouts are linked only when the Bank Transaction party is this supplier. MAIB POS fee withdrawals use the same supplier.",Încasarea se leagă doar când partea tranzacției bancare este acest furnizor. Debitările de comision MAIB POS folosesc același furnizor.
+"Text that must appear in the payout description. Choosing a source fills the default for that source.",Textul care trebuie să apară în descrierea încasării. Alegerea sursei completează valoarea implicită pentru acea sursă.
+Supplier,Furnizor
+Deposit Description,Descrierea încasării
+Set the supplier for {0}.,Indicați furnizorul pentru {0}.
+Set the deposit description for {0}.,Indicați descrierea încasării pentru {0}.
+Set the supplier and the deposit description.,Indicați furnizorul și descrierea încasării.
 "NovaPay, MegaMega, and MAIB Ecomm. The MAIB POS register stores the Journal Entry on each fee debit.","NovaPay, MegaMega și MAIB Ecomm. În registrul MAIB POS nota contabilă este pe fiecare debitare de comision."
 "One row per fee withdrawal. Visa and Mastercard are separate bank transactions and must add up to the fee of that credit date.","Un rând pentru fiecare debitare a comisionului. Visa și Mastercard sunt tranzacții bancare separate și trebuie să însumeze comisionul acelei date de încasare."
 Shows Identify Payment Documents in the Actions menu.,Afișează în meniul Acțiuni punctul «Identifică automat documentele de plată».
