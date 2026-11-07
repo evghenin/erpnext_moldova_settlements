@@ -35,7 +35,7 @@ Credit Date,Data încasării
 Currency,Valută
 Customer,Client
 Default Customer,Client implicit
-"On a submitted register, create a Payment Entry for a row that still has no link. Leave this off for MAIB POS until the invoice stores ReferintaTranzactiei.","Pe un registru înregistrat creează Payment Entry pentru rândul care a rămas fără legătură. Pentru MAIB POS lăsați dezactivat până când factura păstrează ReferintaTranzactiei."
+"Submit does not create a Payment Entry. On a submitted register this shows Create Missing Payments in the Actions menu. That item creates one Payment Entry for a row that still has no link and already has a customer, a payment amount, and a clearing account. A linked row is left as it is. Leave this off for MAIB POS until the invoice stores ReferintaTranzactiei.","Înregistrarea nu creează Payment Entry. Pe un registru înregistrat afișează în meniul Acțiuni punctul «Creează plățile lipsă». Punctul creează un Payment Entry pentru rândul fără legătură care are deja client, sumă și cont de clearing. Rândul cu legătură rămâne neschimbat. Pentru MAIB POS lăsați dezactivat până când factura păstrează ReferintaTranzactiei."
 "Written onto a payment row that has no customer. While the row has no Payment Entry or Sales Invoice, it can be changed or cleared. A selected customer limits the payment and invoice lists and is not replaced.","Se scrie pe rândul de plată fără client. Cât timp nu există Payment Entry și Sales Invoice, poate fi schimbat sau șters. Clientul ales limitează listele de plată și factură și nu este înlocuit."
 Deposit {0} still has a Bank Transaction.,Încasarea {0} are încă o tranzacție bancară.
 Deposit Row,Rând încasare
