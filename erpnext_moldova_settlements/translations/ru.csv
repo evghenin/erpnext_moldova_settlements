@@ -33,7 +33,7 @@ Credit Date,Дата зачисления
 Currency,Валюта
 Customer,Клиент
 Default Customer,Клиент по умолчанию
-"On a submitted register, create a Payment Entry for a row that still has no link. Leave this off for MAIB POS until the invoice stores ReferintaTranzactiei.","На проведённом реестре создаёт Payment Entry для строки, которая так и осталась без связи. Для MAIB POS оставьте выключенным, пока на инвойсе нет ReferintaTranzactiei."
+"Submit does not create a Payment Entry. On a submitted register this shows Create Missing Payments in the Actions menu. That item creates one Payment Entry for a row that still has no link and already has a customer, a payment amount, and a clearing account. A linked row is left as it is. Leave this off for MAIB POS until the invoice stores ReferintaTranzactiei.","Сабмит Payment Entry не создаёт. На проведённом реестре показывает в меню «Действия» пункт «Создать недостающие оплаты». Пункт создаёт один Payment Entry для строки без связи, у которой уже есть клиент, сумма и клиринговый счёт. Строку со связью не трогает. Для MAIB POS оставьте выключенным, пока на инвойсе нет ReferintaTranzactiei."
 "Written onto a payment row that has no customer. While the row has no Payment Entry or Sales Invoice, it can be changed or cleared. A selected customer limits the payment and invoice lists and is not replaced.","Записывается в строку платежа без клиента. Пока нет Payment Entry и Sales Invoice, его можно сменить или очистить. Выбранный клиент ограничивает списки оплаты и инвойса и не заменяется."
 Deposit {0} still has a Bank Transaction.,У зачисления {0} ещё указана банковская транзакция.
 Deposit Row,Строка зачисления

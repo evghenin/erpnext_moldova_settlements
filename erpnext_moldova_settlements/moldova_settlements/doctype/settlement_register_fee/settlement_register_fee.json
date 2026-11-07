@@ -4,7 +4,7 @@
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
- "field_order": ["row_bullet", "credit_date", "external_number", "payment_entry", "fee_amount", "journal_entry", "journal_created", "currency"],
+ "field_order": ["row_bullet", "credit_date", "external_number", "journal_entry", "payment_entry", "fee_amount", "journal_created", "currency"],
  "fields": [
   {
    "allow_on_submit": 1,
@@ -15,6 +15,7 @@
    "read_only": 1
   },
   {
+   "columns": 2,
    "fieldname": "credit_date",
    "fieldtype": "Date",
    "in_list_view": 1,
@@ -23,6 +24,7 @@
   },
   {
    "allow_on_submit": 1,
+   "columns": 2,
    "fieldname": "external_number",
    "fieldtype": "Data",
    "in_list_view": 1,
@@ -31,6 +33,7 @@
   },
   {
    "allow_on_submit": 1,
+   "columns": 2,
    "fieldname": "payment_entry",
    "fieldtype": "Link",
    "in_list_view": 1,
@@ -39,6 +42,7 @@
    "read_only": 1
   },
   {
+   "columns": 2,
    "fieldname": "fee_amount",
    "fieldtype": "Currency",
    "in_list_view": 1,
@@ -49,6 +53,7 @@
   {
    "description": "NovaPay, MegaMega, and MAIB Ecomm. The MAIB POS register stores the Journal Entry on each fee debit.",
    "allow_on_submit": 1,
+   "columns": 2,
    "fieldname": "journal_entry",
    "fieldtype": "Link",
    "in_list_view": 1,

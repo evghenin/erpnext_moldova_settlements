@@ -6,13 +6,13 @@
  "engine": "InnoDB",
  "field_order": [
   "column_break_bxnv",
-  "external_number",
-  "receipt_date",
   "transfer_date",
+  "receipt_date",
+  "external_number",
   "customer",
   "column_break_oned",
-  "payment_entry",
   "sales_invoice",
+  "payment_entry",
   "settlement_register_fee",
   "settlement_register_deposit",
   "payment_created",
@@ -53,6 +53,7 @@
    "read_only": 1
   },
   {
+   "columns": 2,
    "fieldname": "transfer_date",
    "fieldtype": "Date",
    "in_list_view": 1,
@@ -66,6 +67,7 @@
    "read_only": 1
   },
   {
+   "columns": 2,
    "fieldname": "external_number",
    "fieldtype": "Data",
    "in_list_view": 1,
@@ -74,6 +76,7 @@
    "search_index": 1
   },
   {
+   "columns": 2,
    "fieldname": "payment_amount",
    "fieldtype": "Currency",
    "in_list_view": 1,
@@ -84,7 +87,6 @@
   {
    "fieldname": "fee_amount",
    "fieldtype": "Currency",
-   "in_list_view": 1,
    "label": "Fee Amount",
    "options": "currency",
    "read_only": 1
@@ -92,13 +94,13 @@
   {
    "fieldname": "net_amount",
    "fieldtype": "Currency",
-   "in_list_view": 1,
    "label": "Net Amount",
    "options": "currency",
    "read_only": 1
   },
   {
    "allow_on_submit": 1,
+   "columns": 2,
    "fieldname": "payment_entry",
    "fieldtype": "Link",
    "in_list_view": 1,
@@ -107,6 +109,7 @@
   },
   {
    "allow_on_submit": 1,
+   "columns": 2,
    "fieldname": "sales_invoice",
    "fieldtype": "Link",
    "in_list_view": 1,

@@ -7,8 +7,8 @@
  "field_order": [
   "row_bullet",
   "credit_date",
-  "transfer_amount",
   "bank_transaction",
+  "transfer_amount",
   "payment_entry",
   "journal_entry",
   "currency"
@@ -23,6 +23,7 @@
    "read_only": 1
   },
   {
+   "columns": 2,
    "fieldname": "credit_date",
    "fieldtype": "Date",
    "in_list_view": 1,
@@ -30,6 +31,7 @@
    "read_only": 1
   },
   {
+   "columns": 6,
    "fieldname": "transfer_amount",
    "fieldtype": "Currency",
    "in_list_view": 1,
@@ -39,6 +41,7 @@
   },
   {
    "allow_on_submit": 1,
+   "columns": 2,
    "fieldname": "bank_transaction",
    "fieldtype": "Link",
    "in_list_view": 1,

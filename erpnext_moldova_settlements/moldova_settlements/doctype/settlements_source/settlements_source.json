@@ -102,7 +102,7 @@
   },
   {
    "default": "1",
-   "description": "On a submitted register, create a Payment Entry for a row that still has no link. Leave this off for MAIB POS until the invoice stores ReferintaTranzactiei.",
+   "description": "Submit does not create a Payment Entry. On a submitted register this shows Create Missing Payments in the Actions menu. That item creates one Payment Entry for a row that still has no link and already has a customer, a payment amount, and a clearing account. A linked row is left as it is. Leave this off for MAIB POS until the invoice stores ReferintaTranzactiei.",
    "fieldname": "create_payment_if_missing",
    "fieldtype": "Check",
    "in_list_view": 1,
