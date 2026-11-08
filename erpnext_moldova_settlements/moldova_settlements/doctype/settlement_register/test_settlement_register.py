@@ -448,6 +448,64 @@ class TestSettlementRegister(FrappeTestCase):
 		self.assertTrue(all(not row.journal_entry for row in doc.fees))
 		self.assertFalse(frappe.db.exists("Journal Entry", {"settlement_register": doc.name}))
 
+	def test_daily_ecomm_adopts_the_monthly_documents_without_creating_new_ones(self):
+		daily = self.from_file("maib pos", "aDetailPayEcommRep_decontat20260909_Ecomm HOTEL LIFE S.R.L.xlsx")
+		monthly = self.from_file(
+			"maib pos", "aDetailPayEcommRep_lunar_decontat20261002_Ecomm HOTEL LIFE S.R.L.xlsx"
+		)
+		bank = self.bank_transaction(
+			deposit=monthly.deposits[0].transfer_amount,
+			description="Transfer pentru operatiuni de acceptare a cardurilor la plata Ecomm",
+			supplier=self.supplier,
+		)
+		monthly.deposits[0].bank_transaction = bank
+		monthly.save()
+		monthly.submit()
+		create_payment_entries(monthly)
+		monthly.save()
+		payment = monthly.payments[0].payment_entry
+		journal = monthly.fees[0].journal_entry
+		self.assertTrue(payment)
+		self.assertTrue(journal)
+
+		daily.reload()
+		self.assertFalse(daily.payments[0].payment_entry)
+		self.assertFalse(daily.fees[0].journal_entry)
+		self.assertFalse(daily.deposits[0].bank_transaction)
+		payments_before = frappe.db.count("Payment Entry")
+		journals_before = frappe.db.count("Journal Entry")
+
+		found = identify_payments(daily.as_dict())
+		self.assertEqual(found["payments"][0]["payment_entry"], payment)
+		self.assertEqual(found["fees"][0]["journal_entry"], journal)
+		self.assertEqual(found["deposits"][0]["bank_transaction"], bank)
+		daily.reload()
+		self.assertFalse(daily.payments[0].payment_entry)
+		self.assertEqual(frappe.db.count("Payment Entry"), payments_before)
+		self.assertEqual(frappe.db.count("Journal Entry"), journals_before)
+
+		daily.save()
+		daily.reload()
+		self.assertEqual(daily.payments[0].payment_entry, payment)
+		self.assertEqual(daily.payments[0].payment_created, 0)
+		self.assertEqual(daily.fees[0].journal_entry, journal)
+		self.assertEqual(daily.fees[0].journal_created, 0)
+		self.assertEqual(daily.deposits[0].bank_transaction, bank)
+		self.assertFalse(daily.coverage_gaps)
+
+		daily.submit()
+		daily.reload()
+		self.assertEqual(daily.fees[0].journal_entry, journal)
+		self.assertEqual(daily.fees[0].journal_created, 0)
+		self.assertEqual(frappe.db.count("Journal Entry", {"settlement_register": daily.name}), 0)
+		self.assertEqual(frappe.db.count("Payment Entry"), payments_before)
+		create_payment_entries(daily)
+		daily.save()
+		daily.reload()
+		self.assertEqual(daily.payments[0].payment_entry, payment)
+		self.assertEqual(daily.payments[0].payment_created, 0)
+		self.assertEqual(frappe.db.count("Payment Entry"), payments_before)
+
 	def test_maib_ecomm_posts_one_fee_journal_without_a_reference_number(self):
 		doc = self.from_file("maib pos", "aDetailPayEcommRep_decontat20260909_Ecomm HOTEL LIFE S.R.L.xlsx")
 		self.assertEqual(round(doc.deposits[0].transfer_amount, 2), 1880.80)

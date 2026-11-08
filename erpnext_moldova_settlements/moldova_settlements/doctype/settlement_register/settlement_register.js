@@ -164,7 +164,8 @@ function apply_identified(frm, message) {
 	const filled =
 		(message.fee_debits || []).length +
 		count_new_links(frm, "payments", message.payments, ["payment_entry", "sales_invoice"]) +
-		count_new_links(frm, "deposits", message.deposits, ["bank_transaction"]);
+		count_new_links(frm, "deposits", message.deposits, ["bank_transaction"]) +
+		count_new_links(frm, "fees", message.fees, ["journal_entry"]);
 	const assignments = [];
 	collect_assignments(frm, assignments, "payments", message.payments, [
 		"customer",
@@ -178,7 +179,7 @@ function apply_identified(frm, message) {
 		"payment_entry",
 		"journal_entry",
 	]);
-	collect_assignments(frm, assignments, "fees", message.fees, ["row_bullet"]);
+	collect_assignments(frm, assignments, "fees", message.fees, ["row_bullet", "journal_entry"]);
 	for (const incoming of message.fee_debits || []) {
 		frm.add_child("fee_debits", {
 			settlement_register_fee: incoming.settlement_register_fee,

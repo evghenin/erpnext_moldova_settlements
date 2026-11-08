@@ -93,7 +93,10 @@ def _identified(doc, fee_debits=None):
 			}
 			for row in doc.deposits
 		],
-		"fees": [{"name": row.name, "row_bullet": row.row_bullet} for row in doc.fees],
+		"fees": [
+			{"name": row.name, "row_bullet": row.row_bullet, "journal_entry": row.journal_entry}
+			for row in doc.fees
+		],
 		"fee_debits": fee_debits or [],
 	}
 
