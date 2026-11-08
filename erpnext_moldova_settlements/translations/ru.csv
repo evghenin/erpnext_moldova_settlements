@@ -64,6 +64,7 @@ Coverage,Покрытие
 Payment {0} is already in this register.,Платёж {0} уже есть в этом реестре.
 Payment Amount,Сумма платежа
 Payment Created,Платёж создан реестром
+Payment Date,Дата оплаты
 Payment Entry,Платёжное поручение
 Payment Entry {0} amount does not match the payment row.,Сумма платёжного поручения {0} не совпадает со строкой платежа.
 Payment Entry {0} belongs to another customer.,Платёжное поручение {0} принадлежит другому клиенту.
@@ -74,7 +75,6 @@ Payments are created after the register is submitted.,Оплаты создаю�
 Payment row needs one link: Payment Entry or Sales Invoice.,В строке платежа нужна одна связь: платёжное поручение или счёт продажи.
 Payment rows cannot be added or removed after the register is submitted.,Строки платежей нельзя добавлять или удалять после проведения реестра.
 Payments,Платежи
-Receipt Date,Дата приёма
 Reconciled,Сверен
 Red,Красный
 References,Связи
@@ -113,9 +113,9 @@ The MAIB POS payment table was not found.,Таблица платежей MAIB P
 The MAIB POS report has no payment rows.,В отчёте MAIB POS нет платежей.
 The MAIB POS report has no transfer period.,В отчёте MAIB POS нет периода перечисления.
 The MAIB POS report must use one currency.,В отчёте MAIB POS должна быть одна валюта.
-The autorizat report does not create a register.,Отчёт autorizat не создаёт реестр.
 The bank account belongs to another company.,Банковский счёт относится к другой компании.
 "The file is not a NovaPay, MegaMega, or MAIB POS register.","Файл не является реестром NovaPay, MegaMega или MAIB POS."
+The monthly settled report does not create a register.,Месячный отчёт decontat не создаёт реестр.
 The payment table is missing columns.,В таблице платежей не хватает колонок.
 The payment table was not found.,Таблица платежей не найдена.
 The register has no payment rows.,В реестре нет платежей.

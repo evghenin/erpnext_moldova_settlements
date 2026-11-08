@@ -11,8 +11,8 @@ from frappe.utils import cint, flt, getdate
 from erpnext_moldova_settlements.moldova_settlements.parsers.register_file import (
 	CARD_FEE_DESCRIPTION,
 	AmountMismatch,
-	AutorizatReport,
 	RegisterFileError,
+	SettledMonthReport,
 	UnreadableDate,
 	UnreadableTime,
 	parse_register_file,
@@ -37,8 +37,8 @@ def read_source_file(doc):
 	path, filename = _attached_file(doc.source_file)
 	try:
 		parsed = parse_register_file(path, filename)
-	except AutorizatReport:
-		frappe.throw(_("The autorizat report does not create a register."))
+	except SettledMonthReport:
+		frappe.throw(_("The monthly settled report does not create a register."))
 	except AmountMismatch as exc:
 		frappe.throw(
 			_(
