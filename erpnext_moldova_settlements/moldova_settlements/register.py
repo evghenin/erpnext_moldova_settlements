@@ -198,6 +198,7 @@ def _replace_reference_rows(doc):
 
 
 def fill_payment_documents(doc):
+	_adopt_ecomm_links(doc)
 	settings = get_source_settings(doc.company, doc.source)
 	if not settings or not cint(settings.search_payments):
 		frappe.throw(_("Searching for payments is turned off for this source."))
@@ -259,6 +260,7 @@ def fill_fee_debits(doc):
 
 
 def fill_deposit_transactions(doc):
+	_adopt_ecomm_links(doc)
 	settings = _payout_settings(doc)
 	description = settings.deposit_description
 	used = _linked_bank_transactions(doc)
@@ -972,6 +974,7 @@ def create_payment_entries(doc):
 
 
 def _create_missing_payments(doc):
+	_adopt_ecomm_links(doc)
 	settings = get_source_settings(doc.company, doc.source)
 	if not settings or not cint(settings.create_payment_if_missing):
 		return
