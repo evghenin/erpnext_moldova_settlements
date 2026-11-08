@@ -5,6 +5,7 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 
+from erpnext_moldova_settlements.inbox import release_inbox_handler
 from erpnext_moldova_settlements.moldova_settlements.register import (
 	before_cancel_register,
 	before_submit_register,
@@ -33,6 +34,12 @@ class SettlementRegister(Document):
 	def before_cancel(self):
 		before_cancel_register(self)
 
+	def on_cancel(self):
+		release_inbox_handler(self.name, clear_reference=False)
+
+	def on_trash(self):
+		release_inbox_handler(self.name, clear_reference=True)
+
 	def before_update_after_submit(self):
 		refresh_submitted_register(self)
 
@@ -45,25 +52,81 @@ def _open(name):
 	return doc
 
 
+def _form_doc(payload):
+	if isinstance(payload, str):
+		payload = frappe.parse_json(payload)
+	if not isinstance(payload, dict) or payload.get("doctype") != "Settlement Register":
+		frappe.throw(_("A settlement register is required."))
+	doc = frappe.get_doc(payload)
+	if doc.name and frappe.db.exists("Settlement Register", doc.name):
+		doc.check_permission("write")
+		if frappe.db.get_value("Settlement Register", doc.name, "docstatus") == 2:
+			frappe.throw(_("A cancelled register cannot be changed."))
+	else:
+		frappe.has_permission("Settlement Register", "create", throw=True)
+	if doc.docstatus == 2:
+		frappe.throw(_("A cancelled register cannot be changed."))
+	return doc
+
+
+def _identified(doc, fee_debits=None):
+	return {
+		"payments": [
+			{
+				"name": row.name,
+				"payment_entry": row.payment_entry,
+				"sales_invoice": row.sales_invoice,
+				"customer": row.customer,
+				"row_bullet": row.row_bullet,
+			}
+			for row in doc.payments
+		],
+		"deposits": [
+			{
+				"name": row.name,
+				"bank_transaction": row.bank_transaction,
+				"payment_entry": row.payment_entry,
+				"journal_entry": row.journal_entry,
+				"row_bullet": row.row_bullet,
+			}
+			for row in doc.deposits
+		],
+		"fees": [{"name": row.name, "row_bullet": row.row_bullet} for row in doc.fees],
+		"fee_debits": fee_debits or [],
+	}
+
+
 @frappe.whitelist()
-def identify_payments(name):
-	doc = _open(name)
+def identify_payments(doc):
+	doc = _form_doc(doc)
 	fill_payment_documents(doc)
-	doc.save()
+	return _identified(doc)
 
 
 @frappe.whitelist()
-def identify_fee_debits(name):
-	doc = _open(name)
+def identify_fee_debits(doc):
+	doc = _form_doc(doc)
+	before = {row.name for row in doc.fee_debits}
 	fill_fee_debits(doc)
-	doc.save()
+	added = [
+		{
+			"settlement_register_fee": row.settlement_register_fee,
+			"amount": row.amount,
+			"bank_transaction": row.bank_transaction,
+			"journal_entry": row.journal_entry,
+			"currency": row.currency,
+		}
+		for row in doc.fee_debits
+		if row.name not in before
+	]
+	return _identified(doc, added)
 
 
 @frappe.whitelist()
-def identify_deposits(name):
-	doc = _open(name)
+def identify_deposits(doc):
+	doc = _form_doc(doc)
 	fill_deposit_transactions(doc)
-	doc.save()
+	return _identified(doc)
 
 
 @frappe.whitelist()

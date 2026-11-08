@@ -49,6 +49,8 @@ Green,Verde
 Identify Fee Bank Transactions,Identifică automat tranzacțiile bancare ale comisioanelor
 Identify Deposit Bank Transactions,Identifică automat tranzacțiile bancare ale încasărilor
 Identify Payment Documents,Identifică automat documentele de plată
+Filled {0} rows in the form. Save the register to keep them.,"Au fost completate {0} rânduri în formular. Salvați registrul ca să păstrați rezultatul."
+Nothing matched.,Nu s-a găsit nimic.
 Instant Discount,Reducere instantanee
 Journal Entry,Notă contabilă
 Settlements Settings,Setări ale registrelor de plăți
@@ -73,6 +75,7 @@ Payment Entry {0} is in another currency.,Încasarea {0} este în altă monedă.
 Payment Entry {0} is not paid to the clearing account.,Încasarea {0} nu este înregistrată în contul de compensare.
 Payments are created after the register is submitted.,Plățile se creează după înregistrarea registrului.
 Payment row needs one link: Payment Entry or Sales Invoice.,Rândul de plată trebuie să aibă o singură legătură: încasare sau factură de vânzare.
+Payment rows cannot be added or removed after the register is submitted.,Rândurile de plată nu pot fi adăugate sau șterse după înregistrarea registrului.
 Payments,Plăți
 Receipt Date,Data primirii
 Reconciled,Reconciliat

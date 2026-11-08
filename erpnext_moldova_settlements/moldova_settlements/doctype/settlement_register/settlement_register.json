@@ -183,6 +183,7 @@
    "label": "Payments"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "payments",
    "fieldtype": "Table",
    "label": "Payments",

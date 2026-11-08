@@ -6,12 +6,9 @@ from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
 
 def before_cancel(doc, method=None):
-	register = doc.get("settlement_register")
-	if not register or frappe.db.get_value("Settlement Register", register, "docstatus") != 1:
-		return
-	from erpnext_moldova_settlements.moldova_settlements.register import release_journal_links
+	from erpnext_moldova_settlements.moldova_settlements.register import release_cancelled_document
 
-	release_journal_links(register, doc.name)
+	release_cancelled_document("Journal Entry", doc.name)
 
 
 def ensure_settlement_register_field():
