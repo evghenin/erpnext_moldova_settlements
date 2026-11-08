@@ -168,6 +168,18 @@ class TestSettlementRegister(FrappeTestCase):
 		self.assertEqual(row.status, "Processed")
 		self.assertEqual(row.reference_name, second)
 
+	def test_cancelled_register_can_be_deleted_while_its_journal_entry_remains(self):
+		doc = self.from_file("novapay", "Реестр платежей №00000015659.XLSX")
+		doc.submit()
+		journal = doc.fees[0].journal_entry
+		doc.cancel()
+		self.assertEqual(frappe.db.get_value("Journal Entry", journal, "docstatus"), 2)
+		self.assertEqual(frappe.db.get_value("Journal Entry", journal, "settlement_register"), doc.name)
+		frappe.delete_doc("Settlement Register", doc.name)
+		self.assertFalse(frappe.db.exists("Settlement Register", doc.name))
+		self.assertEqual(frappe.db.get_value("Journal Entry", journal, "docstatus"), 2)
+		self.assertFalse(frappe.db.get_value("Journal Entry", journal, "settlement_register"))
+
 	def test_journal_entry_can_be_cancelled_while_the_register_points_at_it(self):
 		from frappe.desk.form.linked_with import get_submitted_linked_docs
 

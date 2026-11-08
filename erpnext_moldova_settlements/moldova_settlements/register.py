@@ -1341,6 +1341,23 @@ def release_journal_links(register, journal_entry):
 	_release_register_link(register, "journal_entry", journal_entry)
 
 
+def release_journal_register_link(register):
+	"""Drop the reverse link before delete checks it.
+
+	The fee journal keeps ``settlement_register`` after the register is
+	cancelled. A static link blocks deletion even when that journal is cancelled.
+	"""
+	if not register or not frappe.get_meta("Journal Entry").has_field("settlement_register"):
+		return
+	frappe.db.set_value(
+		"Journal Entry",
+		{"settlement_register": register},
+		"settlement_register",
+		None,
+		update_modified=False,
+	)
+
+
 def _release_register_link(register, field, name):
 	if not register or frappe.db.get_value("Settlement Register", register, "docstatus") != 1:
 		return

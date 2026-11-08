@@ -15,6 +15,7 @@ from erpnext_moldova_settlements.moldova_settlements.register import (
 	fill_payment_documents,
 	read_source_file,
 	refresh_submitted_register,
+	release_journal_register_link,
 	validate_register,
 )
 
@@ -39,6 +40,7 @@ class SettlementRegister(Document):
 
 	def on_trash(self):
 		release_inbox_handler(self.name, clear_reference=True)
+		release_journal_register_link(self.name)
 
 	def before_update_after_submit(self):
 		refresh_submitted_register(self)
