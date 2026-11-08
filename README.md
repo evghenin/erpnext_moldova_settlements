@@ -44,7 +44,7 @@ The register makes two entries. The customer payment is for the full 100, from a
 
 **MAIB cards on a terminal.** The bank deposits the full payment amount and debits the fee later, as separate statement lines, often by card type. The register does not create its own fee journal entry: reconciling those debits already does that. A till sale is usually already paid on the invoice, so the app does not create a new payment by default. Otherwise the customer would be paid twice. The incoming bank amount moves the money from the clearing account to the bank account.
 
-The MAIB “authorized” report is not taken into a register. The books use the “settled” report: it holds the amounts the bank has already sent.
+The monthly MAIB settled report is not taken into a register, for card terminals and for internet acquiring. Its month is the transfer dates, so it includes payments authorized at the end of the previous month and leaves out payments authorized on the last day of this month: the bank transfers those on the first day of the next month. In the September card sample the settled file holds 28–31 August and stops on 29 September; the authorization file holds 1–30 September, and the 30 September payment is transferred on 1 October. A MAIB report that covers more than one day is loaded only from the authorization file. `ComisAuth` in that file makes the register MAIB Ecomm; without it the register is MAIB POS. A daily settled report is still loaded. It is one transfer day and matches the amount that arrived in the bank that morning.
 
 ## How one register moves
 

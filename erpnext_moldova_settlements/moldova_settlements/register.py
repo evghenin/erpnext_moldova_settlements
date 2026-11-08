@@ -11,8 +11,8 @@ from frappe.utils import cint, flt, getdate
 from erpnext_moldova_settlements.moldova_settlements.parsers.register_file import (
 	CARD_FEE_DESCRIPTION,
 	AmountMismatch,
-	AutorizatReport,
 	RegisterFileError,
+	SettledMonthReport,
 	UnreadableDate,
 	UnreadableTime,
 	parse_register_file,
@@ -37,8 +37,8 @@ def read_source_file(doc):
 	path, filename = _attached_file(doc.source_file)
 	try:
 		parsed = parse_register_file(path, filename)
-	except AutorizatReport:
-		frappe.throw(_("The autorizat report does not create a register."))
+	except SettledMonthReport:
+		frappe.throw(_("The monthly settled report does not create a register."))
 	except AmountMismatch as exc:
 		frappe.throw(
 			_(
@@ -986,14 +986,14 @@ def _create_missing_payments(doc):
 		payment = frappe.new_doc("Payment Entry")
 		payment.payment_type = "Receive"
 		payment.company = doc.company
-		payment.posting_date = row.transfer_date or doc.posting_date
+		payment.posting_date = row.payment_date or row.transfer_date or doc.posting_date
 		payment.party_type = "Customer"
 		payment.party = row.customer
 		payment.paid_amount = row.payment_amount
 		payment.received_amount = row.payment_amount
 		payment.mode_of_payment = doc.mode_of_payment
 		payment.reference_no = row.external_number or doc.name
-		payment.reference_date = payment.posting_date
+		payment.reference_date = row.payment_date or payment.posting_date
 		payment.paid_to = doc.clearing_account
 		payment.remarks = doc.name
 		payment.setup_party_account_field()

@@ -7,7 +7,7 @@
  "field_order": [
   "column_break_bxnv",
   "transfer_date",
-  "receipt_date",
+  "payment_date",
   "external_number",
   "customer",
   "column_break_oned",
@@ -61,9 +61,9 @@
    "read_only": 1
   },
   {
-   "fieldname": "receipt_date",
+   "fieldname": "payment_date",
    "fieldtype": "Date",
-   "label": "Receipt Date",
+   "label": "Payment Date",
    "read_only": 1
   },
   {

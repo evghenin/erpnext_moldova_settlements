@@ -21,8 +21,8 @@ DEPOSIT_PATTERNS = {
 }
 
 
-class AutorizatReport(Exception):
-	"""MAIB autorizat is not a settlement register."""
+class SettledMonthReport(Exception):
+	"""The monthly settled report follows transfer dates, not the days customers paid."""
 
 
 class RegisterFileError(Exception):
@@ -57,8 +57,8 @@ def parse_register_file(path, filename):
 	lower = name.lower()
 	if lower.endswith(".csv"):
 		raise RegisterFileError("This file is not a settlement register.")
-	if "autorizat" in lower:
-		raise AutorizatReport("The autorizat report does not create a register.")
+	if _monthly_settled_name(lower):
+		raise SettledMonthReport("The monthly settled report does not create a register.")
 
 	rows = worksheet_rows(path, preferred_sheet="MDL")
 	text = "\n".join(" ".join(row.values()) for row in rows[:12])
@@ -89,7 +89,7 @@ def _parse_transfer_sheet(rows, filename, source):
 			{
 				"row_number": marker,
 				"transfer_date": _date(row.get(columns["transfer"])),
-				"receipt_date": _date(row.get(columns["receipt"])),
+				"payment_date": _date(row.get(columns["receipt"])),
 				"payment_amount": payment,
 				"fee_amount": fee,
 				"net_amount": net,
@@ -150,16 +150,22 @@ def _transfer_number(source, filename, payments):
 		return f"NP-{digest[:12]}"
 	row = payments[0]
 	amount = format(row["payment_amount"], "f")
-	return f"MM-{row['transfer_date']}-{amount}-{row['receipt_date']}"
+	return f"MM-{row['transfer_date']}-{amount}-{row['payment_date']}"
+
+
+def _monthly_settled_name(filename):
+	"""POS and Ecomm use the same names: lunar decontat is the settled month."""
+	name = (filename or "").lower()
+	return "autorizat" not in name and "lunar" in name and "decontat" in name
 
 
 def _parse_maib(rows, filename):
-	if "autorizat" in (filename or "").lower():
-		raise AutorizatReport("The autorizat report does not create a register.")
 	title = _clean(rows[0].get("A") if rows else "")
 	period = _report_period(title)
 	if not period:
 		raise RegisterFileError("The MAIB POS report has no transfer period.")
+	if _settled_month(filename, period):
+		raise SettledMonthReport("The monthly settled report does not create a register.")
 	header_at = next(
 		(
 			index
@@ -185,13 +191,17 @@ def _parse_maib(rows, filename):
 		net = _money(row.get(columns["Suma_net"]))
 		reference = _clean(row.get(columns["ReferintaTranzactiei"]))
 		_check_identity(reference, payment, fee, net)
+		paid_at = _datetime(row.get(columns["DataTranzactiei"]))
+		if not paid_at:
+			raise RegisterFileError("A payment row has no date.")
 		payments.append(
 			{
 				"row_number": _clean(row.get(columns["Nr"])),
 				"terminal_id": _clean(row.get(columns["TerminalID"])),
 				"external_number": reference,
 				"terminal_name": _clean(row.get(columns["NumeTerminal"])),
-				"transaction_datetime": _datetime(row.get(columns["DataTranzactiei"])),
+				"transaction_datetime": paid_at,
+				"payment_date": paid_at[:10],
 				"transfer_date": _date(row.get(columns["DataTransferului"])),
 				"transaction_type": _clean(row.get(columns["Tip_Tranzactie"])),
 				"valuta": _clean(row.get(columns["Valuta"])),
@@ -222,9 +232,17 @@ def _parse_maib(rows, filename):
 	}
 
 
+def _settled_month(filename, period):
+	"""A report longer than one day is the month. POS and Ecomm load it only from autorizat."""
+	name = (filename or "").lower()
+	if "autorizat" in name or period[0] == period[1]:
+		return False
+	return True
+
+
 def _maib_register_date(filename, period):
-	"""Report date from the file name (decontatYYYYMMDD). Otherwise the period end."""
-	match = re.search(r"decontat(\d{8})", (filename or "").lower())
+	"""Report date from the file name (autorizatYYYYMMDD or decontatYYYYMMDD). Otherwise the period end."""
+	match = re.search(r"(?:autorizat|decontat)(\d{8})", (filename or "").lower())
 	if match:
 		try:
 			return datetime.strptime(match.group(1), "%Y%m%d").date().isoformat()

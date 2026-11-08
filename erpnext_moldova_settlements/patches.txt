@@ -11,4 +11,5 @@ erpnext_moldova_settlements.patches.rename_fees_and_charges_to_fee
 # Patches added in this section will be executed after doctypes are migrated
 erpnext_moldova_settlements.patches.rename_card_mode_of_payment
 erpnext_moldova_settlements.patches.rename_settlement_register_fee_link
+erpnext_moldova_settlements.patches.rename_receipt_date_to_payment_date
 erpnext_moldova_settlements.patches.fee_journal_reference

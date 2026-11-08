@@ -1,13 +1,17 @@
 # Copyright (c) 2026, Evgheni Nemerenco and contributors
 # For license information, please see license.txt
 
-from pathlib import Path
-
 import frappe
 from frappe.tests.utils import FrappeTestCase
 from frappe.utils.file_manager import save_file
 
 from erpnext_moldova_settlements.moldova_settlements.parsers.register_file import DEPOSIT_PATTERNS
+from erpnext_moldova_settlements.moldova_settlements.parsers.sample_workbook import (
+	ecomm_daily_file,
+	megamega_file,
+	novapay_file,
+	pos_month_file,
+)
 from erpnext_moldova_settlements.moldova_settlements.doctype.settlement_register.settlement_register import (
 	identify_payments,
 )
@@ -19,8 +23,8 @@ from erpnext_moldova_settlements.moldova_settlements.register import (
 	fill_payment_documents,
 )
 
-EXAMPLES = Path(__file__).resolve().parents[3] / "examples"
 COMPANY = "_Settlements Co"
+_ONE_PAYMENT = [{"payment": "100.00", "fee": "3.00", "net": "97.00", "external": "SHIP-1001"}]
 test_ignore = [
 	"Account",
 	"Bank Account",
@@ -65,8 +69,8 @@ class TestSettlementRegister(FrappeTestCase):
 		self._settings(create_payment_if_missing=1, search_payments=1)
 
 	def test_same_file_does_not_create_a_second_register(self):
-		first = self.from_file("novapay", "Реестр платежей №00000015836.XLSX")
-		self.assertEqual(first.register_number, "NP-00000015836")
+		first = self.from_file(novapay_file("10000000011", _ONE_PAYMENT))
+		self.assertEqual(first.register_number, "NP-10000000011")
 		self.assertTrue(first.name.startswith("STR-"))
 		self.assertEqual(len(first.payments), 1)
 		second = frappe.new_doc("Settlement Register")
@@ -76,29 +80,29 @@ class TestSettlementRegister(FrappeTestCase):
 		self.assertEqual(
 			frappe.db.count(
 				"Settlement Register",
-				{"register_number": "NP-00000015836", "docstatus": ["<", 2]},
+				{"register_number": "NP-10000000011", "docstatus": ["<", 2]},
 			),
 			1,
 		)
 
 	def test_file_amounts_are_stored_as_read(self):
-		doc = self.from_file("novapay", "Реестр платежей №00000008204.XLSX")
+		doc = self.from_file(novapay_file("10000000012", _ONE_PAYMENT))
 		row = doc.payments[0]
-		self.assertEqual(round(row.payment_amount, 2), 2213)
-		self.assertEqual(round(row.fee_amount, 2), 55.33)
-		self.assertEqual(round(row.net_amount, 2), 2157.67)
+		self.assertEqual(round(row.payment_amount, 2), 100)
+		self.assertEqual(round(row.fee_amount, 2), 3)
+		self.assertEqual(round(row.net_amount, 2), 97)
 		self.assertEqual(len(doc.fees), 1)
-		self.assertEqual(round(doc.fees[0].fee_amount, 2), 55.33)
-		self.assertEqual(round(doc.deposits[0].transfer_amount, 2), 2157.67)
+		self.assertEqual(round(doc.fees[0].fee_amount, 2), 3)
+		self.assertEqual(round(doc.deposits[0].transfer_amount, 2), 97)
 
-		mega = self.from_file("megamega", "Реестр платежей.XLSX")
+		mega = self.from_file(megamega_file())
 		self.assertEqual(len(mega.fees), 1)
-		self.assertEqual(round(mega.payments[0].fee_amount, 2), 127.97)
-		self.assertEqual(round(mega.payments[0].net_amount, 2), 560.03)
-		self.assertEqual(round(mega.deposits[0].transfer_amount, 2), 560.03)
+		self.assertEqual(round(mega.payments[0].fee_amount, 2), 13)
+		self.assertEqual(round(mega.payments[0].net_amount, 2), 87)
+		self.assertEqual(round(mega.deposits[0].transfer_amount, 2), 87)
 
 	def test_submit_posts_one_fee_journal_and_no_payment(self):
-		doc = self.from_file("novapay", "Реестр платежей №00000016330.XLSX")
+		doc = self.from_file(novapay_file("10000000013", _ONE_PAYMENT))
 		payment = self.payment(doc.payments[0].payment_amount)
 		doc.submit()
 		doc.reload()
@@ -117,14 +121,15 @@ class TestSettlementRegister(FrappeTestCase):
 		self.assertEqual(frappe.db.get_value("Payment Entry", payment, "docstatus"), 1)
 
 	def test_cancelled_register_can_be_imported_again(self):
-		doc = self.from_file("novapay", "Реестр платежей №00000012315.XLSX")
+		source = novapay_file("10000000014", _ONE_PAYMENT)
+		doc = self.from_file(source)
 		doc.submit()
 		journal = doc.fees[0].journal_entry
 		doc.cancel()
 		self.assertEqual(frappe.db.get_value("Journal Entry", journal, "docstatus"), 2)
-		again = self.from_file("novapay", "Реестр платежей №00000012315.XLSX")
-		self.assertEqual(again.register_number, "NP-00000012315")
-		self.assertEqual(doc.register_number, "NP-00000012315")
+		again = self.from_file(source)
+		self.assertEqual(again.register_number, "NP-10000000014")
+		self.assertEqual(doc.register_number, "NP-10000000014")
 		self.assertNotEqual(again.name, doc.name)
 		self.assertTrue(again.name.startswith("STR-"))
 		self.assertEqual(again.docstatus, 0)
@@ -135,7 +140,7 @@ class TestSettlementRegister(FrappeTestCase):
 		self.assertRaises(frappe.ValidationError, third.insert)
 
 	def test_deleted_draft_is_replaced_when_the_inbox_handler_runs_again(self):
-		mail = self._inbox_with_register_file("novapay", "Реестр платежей №00000008204.XLSX")
+		mail = self._inbox_with_register_file(novapay_file("10000000015", _ONE_PAYMENT))
 		first = self._run_inbox_handler(mail)
 		self.assertEqual(frappe.db.get_value("Settlement Register", first, "docstatus"), 0)
 		frappe.delete_doc("Settlement Register", first)
@@ -152,7 +157,7 @@ class TestSettlementRegister(FrappeTestCase):
 		self.assertEqual(row.reference_name, second)
 
 	def test_cancelled_register_is_replaced_when_the_inbox_handler_runs_again(self):
-		mail = self._inbox_with_register_file("novapay", "Реестр платежей №00000016330.XLSX")
+		mail = self._inbox_with_register_file(novapay_file("10000000016", _ONE_PAYMENT))
 		first = self._run_inbox_handler(mail)
 		frappe.get_doc("Settlement Register", first).submit()
 		frappe.get_doc("Settlement Register", first).cancel()
@@ -169,7 +174,7 @@ class TestSettlementRegister(FrappeTestCase):
 		self.assertEqual(row.reference_name, second)
 
 	def test_cancelled_register_can_be_deleted_while_its_journal_entry_remains(self):
-		doc = self.from_file("novapay", "Реестр платежей №00000015659.XLSX")
+		doc = self.from_file(novapay_file("10000000017", _ONE_PAYMENT))
 		doc.submit()
 		journal = doc.fees[0].journal_entry
 		doc.cancel()
@@ -183,7 +188,7 @@ class TestSettlementRegister(FrappeTestCase):
 	def test_journal_entry_can_be_cancelled_while_the_register_points_at_it(self):
 		from frappe.desk.form.linked_with import get_submitted_linked_docs
 
-		doc = self.from_file("novapay", "Реестр платежей №00000015659.XLSX")
+		doc = self.from_file(novapay_file("10000000018", _ONE_PAYMENT))
 		doc.submit()
 		journal = doc.fees[0].journal_entry
 		linked = get_submitted_linked_docs("Settlement Register", doc.name)["docs"]
@@ -390,11 +395,9 @@ class TestSettlementRegister(FrappeTestCase):
 		self.assertEqual(frappe.db.count("Payment Entry", {"reference_no": "SHMD-NOSRCH"}), 0)
 
 	def test_create_payment_uses_the_row_amount_and_mode(self):
-		doc = self.register(
-			"NovaPay",
-			"NP-create",
-			[self.row(100, 3, 97, "SHMD-CREATE")],
-		)
+		row = self.row(100, 3, 97, "SHMD-CREATE")
+		row["payment_date"] = "2026-09-01"
+		doc = self.register("NovaPay", "NP-create", [row])
 		doc.submit()
 		create_payment_entries(doc)
 		doc.save()
@@ -404,6 +407,8 @@ class TestSettlementRegister(FrappeTestCase):
 		self.assertEqual(payment.paid_to, self.clearing)
 		self.assertEqual(payment.mode_of_payment, self.mode)
 		self.assertEqual(payment.party, self.customer)
+		self.assertEqual(str(payment.posting_date), "2026-09-01")
+		self.assertEqual(str(payment.reference_date), "2026-09-01")
 		self.assertEqual(doc.payments[0].payment_created, 1)
 		create_payment_entries(doc)
 		doc.save()
@@ -437,11 +442,11 @@ class TestSettlementRegister(FrappeTestCase):
 		self.assertRaises(frappe.ValidationError, lambda: create_payment_entries(doc))
 
 	def test_maib_pos_groups_by_transfer_date_and_posts_no_fee_journal(self):
-		doc = self.from_file("maib pos", "aDetailPayRep_lunar_decontat20261002_HOTEL LIFE SRL SmartPOS.xlsx")
-		self.assertEqual(len(doc.fees), 27)
-		self.assertEqual(len(doc.deposits), 27)
-		self.assertEqual(round(sum(row.transfer_amount for row in doc.deposits), 2), 105767.70)
-		self.assertEqual(round(sum(row.fee_amount for row in doc.fees), 2), 1422.31)
+		doc = self.from_file(pos_month_file("aDetailPayRep_lunar_autorizat20261002_Sample SmartPOS.xlsx"))
+		self.assertEqual(len(doc.fees), 2)
+		self.assertEqual(len(doc.deposits), 2)
+		self.assertEqual(round(sum(row.transfer_amount for row in doc.deposits), 2), 140)
+		self.assertEqual(round(sum(row.fee_amount for row in doc.fees), 2), 2)
 		doc.submit()
 		doc.reload()
 		self.assertEqual(doc.status, "Unreconciled")
@@ -449,9 +454,20 @@ class TestSettlementRegister(FrappeTestCase):
 		self.assertFalse(frappe.db.exists("Journal Entry", {"settlement_register": doc.name}))
 
 	def test_daily_ecomm_adopts_the_monthly_documents_without_creating_new_ones(self):
-		daily = self.from_file("maib pos", "aDetailPayEcommRep_decontat20260909_Ecomm HOTEL LIFE S.R.L.xlsx")
-		monthly = self.from_file(
-			"maib pos", "aDetailPayEcommRep_lunar_decontat20261002_Ecomm HOTEL LIFE S.R.L.xlsx"
+		daily = self.from_file(ecomm_daily_file("aDetailPayEcommRep_decontat20260909_Ecomm Sample.xlsx"))
+		monthly = self.register(
+			"MAIB Ecomm",
+			"MAIB-E1000001-2026-09-01-2026-09-30",
+			[
+				{
+					"transfer_date": "2026-09-09",
+					"payment_date": "2026-09-08",
+					"payment_amount": 100,
+					"fee_amount": 3,
+					"net_amount": 97,
+					"external_number": "RRN-SAMPLE-1",
+				}
+			],
 		)
 		bank = self.bank_transaction(
 			deposit=monthly.deposits[0].transfer_amount,
@@ -507,14 +523,14 @@ class TestSettlementRegister(FrappeTestCase):
 		self.assertEqual(frappe.db.count("Payment Entry"), payments_before)
 
 	def test_maib_ecomm_posts_one_fee_journal_without_a_reference_number(self):
-		doc = self.from_file("maib pos", "aDetailPayEcommRep_decontat20260909_Ecomm HOTEL LIFE S.R.L.xlsx")
-		self.assertEqual(round(doc.deposits[0].transfer_amount, 2), 1880.80)
+		doc = self.from_file(ecomm_daily_file("aDetailPayEcommRep_decontat20260909_Ecomm Sample.xlsx"))
+		self.assertEqual(round(doc.deposits[0].transfer_amount, 2), 97)
 		doc.submit()
 		doc.reload()
 		journal = frappe.get_doc("Journal Entry", doc.fees[0].journal_entry)
 		self.assertFalse(journal.cheque_no)
 		fee_debit = [row.debit_in_account_currency for row in journal.accounts if row.account == self.fee]
-		self.assertEqual([round(amount, 2) for amount in fee_debit], [59.2])
+		self.assertEqual([round(amount, 2) for amount in fee_debit], [3])
 
 	def test_novapay_deposit_search_links_the_net_payout(self):
 		doc = self.register(
@@ -523,7 +539,7 @@ class TestSettlementRegister(FrappeTestCase):
 			[self.row(100, 3, 97, "SHMD-PAYOUT")],
 		)
 		description = (
-			"PLATA PENTRU RAMBURS PRIMIT CONFORM CONTRACT NR 929 DIN 19.08.2024"
+			"PLATA PENTRU RAMBURS PRIMIT CONFORM CONTRACT NR 100 DIN 01.01.2026"
 			"A. TO TAL 97 MDL, FARA TVA"
 		)
 		match = self.bank_transaction(deposit=97, description=description, supplier=self.supplier)
@@ -543,7 +559,7 @@ class TestSettlementRegister(FrappeTestCase):
 		doc.deposits[0].bank_transaction = chosen
 		self.bank_transaction(
 			deposit=97,
-			description="PLATA PENTRU RAMBURS PRIMIT CONFORM CONTRACT NR 929",
+			description="PLATA PENTRU RAMBURS PRIMIT CONFORM CONTRACT NR 100",
 			supplier=self.supplier,
 		)
 		fill_deposit_transactions(doc)
@@ -565,38 +581,38 @@ class TestSettlementRegister(FrappeTestCase):
 		doc = self.register(
 			"MAIB Ecomm",
 			"MAIB-E-payout",
-			[self.row(100, 7.32, 92.68, "625107054986")],
+			[self.row(100, 10, 90, "RRN-SAMPLE-1")],
 		)
 		description = (
 			"Transfer pentru operatiuni de accep tare a cardurilor la plata Ecomm "
-			"HO TEL LIFE S.R.L. ( MDL 92.68 )"
+			"SAMPLE MERCHANT S.R.L. ( MDL 90.00 )"
 		)
-		match = self.bank_transaction(deposit=92.68, description=description, supplier=self.supplier)
+		match = self.bank_transaction(deposit=90, description=description, supplier=self.supplier)
 		self.bank_transaction(
-			deposit=92.68,
+			deposit=90,
 			description="Transfer pentru operatiuni de acceptare a cardurilor",
 			supplier=self.supplier,
 		)
 		fill_deposit_transactions(doc)
 		self.assertEqual(doc.deposits[0].bank_transaction, match)
-		self.assertEqual(round(doc.deposits[0].transfer_amount, 2), 92.68)
+		self.assertEqual(round(doc.deposits[0].transfer_amount, 2), 90)
 
 	def test_maib_pos_deposit_search_skips_an_ecomm_payout(self):
 		doc = self.register(
 			"MAIB POS",
 			"MAIB-pos-not-ecomm",
-			[self.row(92.68, 0, 92.68, "RRN-POS-NET")],
+			[self.row(90, 0, 90, "RRN-POS-NET")],
 		)
 		self.bank_transaction(
-			deposit=92.68,
+			deposit=90,
 			description=(
 				"Transfer pentru operatiuni de acceptare a cardurilor la plata Ecomm "
-				"HOTEL LIFE S.R.L. ( MDL 92.68 )"
+				"SAMPLE MERCHANT S.R.L. ( MDL 90.00 )"
 			),
 			supplier=self.supplier,
 		)
 		match = self.bank_transaction(
-			deposit=92.68,
+			deposit=90,
 			description="Transfer pentru operatiuni de acceptare a cardurilor",
 			supplier=self.supplier,
 		)
@@ -611,12 +627,12 @@ class TestSettlementRegister(FrappeTestCase):
 		)
 		match = self.bank_transaction(
 			deposit=81.4,
-			description="Conform contractul nr 15 din 01.09.2026",
+			description="Conform contractul nr 100 din 01.01.2026",
 			supplier=self.supplier,
 		)
 		self.bank_transaction(
 			deposit=81.4,
-			description="Conform contractul nr 15 din 01.09.2026",
+			description="Conform contractul nr 100 din 01.01.2026",
 			supplier=self.other_supplier,
 		)
 		fill_deposit_transactions(doc)
@@ -683,7 +699,7 @@ class TestSettlementRegister(FrappeTestCase):
 		self.assertFalse(doc.payments[0].payment_entry)
 		self.assertFalse(doc.payments[0].sales_invoice)
 
-	def _inbox_with_register_file(self, folder, filename):
+	def _inbox_with_register_file(self, path):
 		if not frappe.db.exists("DocType", "Supplier Inbox Email"):
 			self.skipTest("Supplier Inbox is not installed")
 		if frappe.db.exists("DocType", "Supplier Inbox Settings"):
@@ -694,7 +710,6 @@ class TestSettlementRegister(FrappeTestCase):
 		]
 		settings.save()
 		mail = frappe.get_doc({"doctype": "Supplier Inbox Email"}).insert(ignore_permissions=True)
-		path = EXAMPLES / folder / filename
 		attached = save_file(path.name, path.read_bytes(), "Supplier Inbox Email", mail.name, is_private=1)
 		if attached.file_name != path.name:
 			frappe.db.set_value("File", attached.name, "file_name", path.name, update_modified=False)
@@ -729,8 +744,7 @@ class TestSettlementRegister(FrappeTestCase):
 			as_dict=True,
 		)
 
-	def from_file(self, folder, filename):
-		path = EXAMPLES / folder / filename
+	def from_file(self, path):
 		attached = save_file(path.name, path.read_bytes(), None, None, is_private=1)
 		if attached.file_name != path.name:
 			frappe.db.set_value("File", attached.name, "file_name", path.name, update_modified=False)

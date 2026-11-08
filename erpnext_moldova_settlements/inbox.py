@@ -4,8 +4,8 @@
 import frappe
 
 from erpnext_moldova_settlements.moldova_settlements.parsers.register_file import (
-	AutorizatReport,
 	RegisterFileError,
+	SettledMonthReport,
 	parse_register_file,
 )
 from erpnext_moldova_settlements.moldova_settlements.register import active_register_name
@@ -56,7 +56,7 @@ def handle_inbound_email(inbound_email):
 		path = frappe.get_doc("File", file_doc).get_full_path()
 		try:
 			parsed = parse_register_file(path, row.file_name)
-		except AutorizatReport:
+		except SettledMonthReport:
 			continue
 		except RegisterFileError:
 			continue

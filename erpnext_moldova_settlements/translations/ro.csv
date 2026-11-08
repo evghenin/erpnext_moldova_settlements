@@ -67,6 +67,7 @@ Coverage,Acoperire
 Payment {0} is already in this register.,Plata {0} este deja în acest registru.
 Payment Amount,Suma plății
 Payment Created,Plată creată de registru
+Payment Date,Data plății
 Payment Entry,Încasare
 Payment Entry {0} amount does not match the payment row.,Suma încasării {0} nu corespunde rândului de plată.
 Payment Entry {0} belongs to another customer.,Încasarea {0} aparține altui client.
@@ -77,7 +78,6 @@ Payments are created after the register is submitted.,Plățile se creează dup�
 Payment row needs one link: Payment Entry or Sales Invoice.,Rândul de plată trebuie să aibă o singură legătură: încasare sau factură de vânzare.
 Payment rows cannot be added or removed after the register is submitted.,Rândurile de plată nu pot fi adăugate sau șterse după înregistrarea registrului.
 Payments,Plăți
-Receipt Date,Data primirii
 Reconciled,Reconciliat
 Red,Roșu
 References,Legături
@@ -116,9 +116,9 @@ The MAIB POS payment table was not found.,Tabelul plăților MAIB POS nu a fost 
 The MAIB POS report has no payment rows.,Raportul MAIB POS nu are plăți.
 The MAIB POS report has no transfer period.,Raportul MAIB POS nu are perioada transferului.
 The MAIB POS report must use one currency.,Raportul MAIB POS trebuie să aibă o singură valută.
-The autorizat report does not create a register.,Raportul autorizat nu creează un registru.
 The bank account belongs to another company.,Contul bancar aparține altei companii.
 "The file is not a NovaPay, MegaMega, or MAIB POS register.","Fișierul nu este un registru NovaPay, MegaMega sau MAIB POS."
+The monthly settled report does not create a register.,Raportul lunar decontat nu creează un registru.
 The payment table is missing columns.,Tabelului de plăți îi lipsesc coloane.
 The payment table was not found.,Tabelul plăților nu a fost găsit.
 The register has no payment rows.,Registrul nu are plăți.

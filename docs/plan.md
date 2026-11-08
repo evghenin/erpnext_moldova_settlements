@@ -20,10 +20,10 @@ Check: customer payment total = deposit net + fee.
 
 **MAIB POS.** The bank deposits the payment amount without deducting the fee. It debits the fee as a separate transaction. The deposit date comes from the register row, from `DataTransferului`. The parser groups payments only by that date. If several days in the file already sit on one `DataTransferului`, that is one group. Different dates stay different groups.
 
-The September `decontat` is like that. `2026-09-07` is one date, and inside it are transactions from 4–6 September: a transfer of 21311.30 and a fee of 295.93. `2026-09-12` and `2026-09-13` stay two dates.
+The September authorization report is like that. `2026-09-07` is one date, and inside it are transactions from 4–6 September: a transfer of 21311.30 and a fee of 295.93. `2026-09-12` and `2026-09-13` stay two dates.
 
-1. One monthly `decontat` is one register. `autorizat` is not posted. Payments inside the register are grouped by `DataTransferului`.
-2. A group has two amounts taken from file fields, without deriving one from the other. The transfer amount is the sum of `SumaTranzactiei`, and it sits on the deposit row together with one incoming Bank Transaction. The fee amount is the sum of `Commission`. The bank debits it in several transactions, by card type: for `2026-09-08` those are 23.46 and 57.83, which add up to 81.29, exactly that date’s fee in `decontat`. Both debits are labelled “Retinerea comisionului-operatiunile acceptare card”, one Visa and one MasterCard. “Comision acceptare MIA” and “Com. Plati Ord.PJ Internet Banking” do not belong to this register.
+1. One monthly authorization report (`autorizat`) is one register. The monthly settled report (`lunar` and `decontat` in the file name) is not posted. A settled month is cut by `DataTransferului`, so it includes payments from the end of the previous month and omits payments from the last day of this month. In September the settled file has 89 transactions: 10 of them are from 28–31 August, settled on 2026-09-01, and it stops on 29 September. The authorization file has the 80 payments authorized on 1–30 September, gross 97301.70, fee 1233.17, net 96068.53. The 30 September payment, 40.00, is transferred on 2026-10-01 and sits on that deposit date inside the September register. The 2026-09-01 deposit belongs to the August authorization register. Payments inside the register are still grouped by `DataTransferului`, because that is the morning the bank sent the money. A daily `decontat` file, whose period is one day, is still a register: it is the amount that arrived that morning.
+2. A group has two amounts taken from file fields, without deriving one from the other. The transfer amount is the sum of `SumaTranzactiei`, and it sits on the deposit row together with one incoming Bank Transaction. The fee amount is the sum of `Commission`. The bank debits it in several transactions, by card type: for `2026-09-08` those are 23.46 and 57.83, which add up to 81.29, exactly that date’s fee in the authorization report. Both debits are labelled “Retinerea comisionului-operatiunile acceptare card”, one Visa and one MasterCard. “Comision acceptare MIA” and “Com. Plati Ord.PJ Internet Banking” do not belong to this register.
 3. The source has two independent settings. “Find submitted payments” turns on the Actions item “Match payment documents”: it links an empty row to a Payment Entry or to a paid POS Sales Invoice (`is_pos`, a `Sales Invoice Payment` row). It does not replace a link that was already set by hand. Submit does not call this item. “Create a payment if none is found” applies to a submitted register and creates a Payment Entry for the payment-amount field, only for a row that is still unlinked. With both flags off, the register posts only the fee and leaves the row unlinked.
 4. For MAIB, creation is off by default. A card sale in POS is already paid by the invoice posting, and it has no separate Payment Entry. Creating a Payment Entry when the search misses would pay the customer a second time. Creation for MAIB can be turned on when the invoice carries `ReferintaTranzactiei`: without that reference, amount and time cannot tell a miss from a sale that already exists. For NovaPay and MegaMega, creation is on by default.
 5. The morning MAIB deposit is matched to the document that already holds the amount: a found `Sales Invoice Payment` row or, if creation was on and no invoice was found, a new Payment Entry. The card payment lands on the clearing account. The incoming bank transaction moves that amount from clearing to the bank account. The mode-of-payment account and the Bank Account account are different accounts.
@@ -38,7 +38,9 @@ Group check: the transfer amount and the fee amount equal the sums of the paymen
 2. A Payment Entry from clearing to the customer is for `SumaTranzactiei`.
 3. The fee is one Journal Entry on the `DataTransferului` date: debit the fee account, credit clearing. This fee has no Bank Transaction debits.
 
-The payment fee and the date fee are already the sum of `Commission` and `ComisAuth`; `ComisAuth` is not stored on its own. In the 8 September email: 58.20 + 1.00 = 59.20, net 1,880.80. Exactly 1,880.80 arrived in the account. The Merchant Portal shows only `Commission` and a net of 1,881.80; the register is built from the email. Payment Entry creation is on by default, as for NovaPay. The daily header writes the period without hyphens, `20260909-20260909`; the register number is still `MAIB-E0103299-2026-09-09-2026-09-09`. The monthly number is `MAIB-E0103299-2026-09-01-2026-09-30`.
+The monthly Ecomm register is the authorization report, the same rule as MAIB POS. The pair is `aDetailPayEcommRep_lunar_autorizat20261102_Ecomm HOTEL LIFE S.R.L.xlsx` and `aDetailPayEcommRep_lunar_decontat20261102_Ecomm HOTEL LIFE S.R.L.xlsx`. The first creates the register. The second does not. `ComisAuth` makes the authorization report the source MAIB Ecomm. A daily settled file stays a register: its period is one day, and its name has `decontat` without `lunar`. The same RRN can then sit in the daily register and in the monthly authorization register.
+
+The payment fee and the date fee are already the sum of `Commission` and `ComisAuth`; `ComisAuth` is not stored on its own. In the 8 September email: 58.20 + 1.00 = 59.20, net 1,880.80. Exactly 1,880.80 arrived in the account. The Merchant Portal shows only `Commission` and a net of 1,881.80; the daily register is built from that email. Payment Entry creation is on by default, as for NovaPay. The daily header writes the period without hyphens, `20260909-20260909`; the register number is still `MAIB-E0103299-2026-09-09-2026-09-09`. The monthly authorization number is `MAIB-E0103299-2026-09-01-2026-09-30`.
 
 Daily registers and the monthly register of the same source live together. The same RRN is saved in the second register when the amount, fee, net, and `DataTransferului` match. On save, an empty row copies `payment_entry`, `sales_invoice`, and the customer from the other register and does not mark them as created here. A fee row and a deposit row copy the Journal Entry and the Bank Transaction only when that date has the same set of RRNs and the same day totals in both registers. A day that matches only in part does not copy the entry and does not get a new one on submit: otherwise the day’s fee would be posted twice. Submit creates a fee Journal Entry for a row that is still unlinked, and it does not create a Payment Entry. Cancel cancels only the documents this register created, and it does not go through while another register holds a copied link: the register that copied the link is cancelled first. The Coverage field shows two mismatches inside this register’s dates: an RRN that exists in another register and is missing here, and an RRN that exists here but in no other MAIB Ecomm register.
 
@@ -77,9 +79,9 @@ On the Connections tab the register shows Journal Entry, Payment Entry, Bank Tra
 
 The other columns of the row also sit on this table as their own fields:
 
-- NovaPay: row number, transfer date, acceptance date, full name, shipment number
-- MegaMega: row number, acceptance date, transfer date
-- MAIB: TerminalID, ReferintaTranzactiei, NumeTerminal, DataTranzactiei, DataTransferului, Tip_Tranzactie, Valuta, NrCARD, SumaNumerar, SumaReversa, ReversSumaNumerar, ComisionReversat, Instant_Discount
+- NovaPay: row number, transfer date, payment date, full name, shipment number
+- MegaMega: row number, payment date, transfer date
+- MAIB: TerminalID, ReferintaTranzactiei, NumeTerminal, DataTranzactiei, DataTransferului, Tip_Tranzactie, Valuta, NrCARD, SumaNumerar, SumaReversa, ReversSumaNumerar, ComisionReversat, Instant_Discount. The payment date is the date of `DataTranzactiei`.
 
 A payment row has links `settlement_register_fee` and `settlement_register_deposit` to the fee and deposit rows of the same register with the same date. The parser sets them; they are not picked by hand.
 
@@ -87,13 +89,13 @@ The row has two separate Link fields: `payment_entry` to Payment Entry and `sale
 
 The register form has one Actions menu. In Draft and on a submitted register it holds the matching items: “Match payment documents”, “Match fee bank transactions”, “Match deposit bank transactions”. On a submitted register, when the source has creation turned on, there is also “Create missing payments”. The payment item is visible when the source has search turned on. The fee Bank Transaction item is visible for MAIB POS. The deposit Bank Transaction item is visible for every source. Matching items fill empty links only, do not change a manual choice, and do not submit the register. A draft does not create journal entries or payments. A payment that is already linked is not given to a second row. Payment search is limited to the row’s customer. If the customer is empty and exactly one Payment Entry or POS Sales Invoice is found, the row is linked to it and the row’s customer is taken from that document. Search does not replace a customer that was already chosen. Submit does not call these items.
 
-Row uniqueness: NovaPay + shipment number, MAIB + ReferintaTranzactiei. MegaMega has no external number in the file, so the key stays weak: acceptance date + transfer date + payment amount.
+Row uniqueness: NovaPay + shipment number, MAIB + ReferintaTranzactiei. MegaMega has no external number in the file, so the key stays weak: payment date + transfer date + payment amount.
 
 The register number is computed from the file data and stored in its own field. The document name is the series `STR-.YYYY.-`. The screen and the links show the register number. A repeated upload and a repeated email look up the register by this number, not by the document name. An existing draft or submitted register with the same number does not create a second document. A cancelled register does not hold the number: the same file creates a new series document. Deleting a draft or cancelling a register puts that email’s settlement handler row back to Queued. A draft delete also clears the row’s document link, because that link is what blocks the delete. The next handler run creates a new register and writes it on the same row.
 
 - NovaPay: `NP-` and the number from the file name, `NP-00000008204`. If the name has lost the number, creation is still blocked: the system already has a register with the same set of shipment numbers.
-- MegaMega: `MM-`, transfer date, payment amount, and acceptance date. The file has no other number.
-- MAIB `decontat`: `MAIB-`, TerminalID, and the period from the report header, `MAIB-S0101949-2026-09-01-2026-09-30`. For Ecomm, a period `20260909-20260909` is read as the same dates. An `autorizat` file does not create a register.
+- MegaMega: `MM-`, transfer date, payment amount, and payment date. The file has no other number.
+- MAIB authorization report, POS and Ecomm: `MAIB-`, TerminalID, and the period from the report header, `MAIB-S0101949-2026-09-01-2026-09-30`. For a daily Ecomm file, a period `20260909-20260909` is read as the same dates. A report longer than one day does not create a register unless the file name contains `autorizat`. A daily settled file does.
 
 **Settlement Register Fee**:
 
@@ -156,7 +158,7 @@ Files live in `erpnext_moldova_settlements/examples`. In all three sources a row
 **NovaPay** — 11 files, 12 rows (`№00000015659` has two rows, the rest one each). The recipient is `Hotel Life SRL` everywhere. Sheet `TDSheet`, labels in column B, header values in E.
 
 - Header: recipient, bank account, date (`dd.mm.yyyy`). The bank account in the samples is the word `Основной`, not an IBAN: the clearing account is not taken from the file.
-- Row: transfer date (C), acceptance date (D), payment amount (E), fee (F), amount to transfer (G), full name (H), shipment number (I). The net label has the typo “Сума”.
+- Row: transfer date (C), payment date (D), payment amount (E), fee (F), amount to transfer (G), full name (H), shipment number (I). The net label has the typo “Сума”.
 - The external row number is the shipment number. All 12 in the samples are unique: `SHMD…` and one numeric `80000001284182`.
 - The register number exists only in the file name (`Реестр платежей №00000008204`); it is not in the cells. The row idempotency key is NovaPay + shipment number.
 - The fee in the samples is exactly 2.5% or 3%. The transfer date matches the header date. One file is one deposit date.
@@ -164,17 +166,17 @@ Files live in `erpnext_moldova_settlements/examples`. In all three sources a row
 **MegaMega** — 2 files, one row each. The same sheet `TDSheet` and the same labels, but the date columns are swapped relative to NovaPay, so a shared parse by column index is impossible.
 
 - Header: recipient `"HOTEL LIFE" S.R.L`, account `MD46AG000000022516020091`, date as an Excel serial (`46209` = 2026-07-06, `46251` = 2026-08-17).
-- Row: acceptance date (C), transfer date (D), amount (E), fee (F), net (G). No full name and no external number.
+- Row: payment date (C), transfer date (D), amount (E), fee (F), net (G). No full name and no external number.
 - The fee in both files is 18.6%. In the file, `127.968` and `560.032` are floats; the register stores 127.97 and 560.03.
 - The header date is not always the transfer date (register dated 2026-08-17, transfer 2026-08-05). The Bank Transaction uses the row’s transfer date.
-- The file name is generic (`Реестр платежей.XLSX`) and there is no register number. The row key is still weak: MegaMega + acceptance date + transfer date + amount.
+- The file name is generic (`Реестр платежей.XLSX`) and there is no register number. The row key is still weak: MegaMega + payment date + transfer date + amount.
 
 **MAIB POS** — two monthly files for 2026-09, sheet `MDL`, terminal `S0101949`, currency MDL. Header on row 4, then `Total`, then a `Lista de totaluri` block (a summary by transaction type; it is not posted).
 
-- `decontat` — settled in the period: 89 transactions, 27 `DataTransferului` dates, gross 105767.70, fee 1422.31, net 104345.39.
-- `autorizat` — authorized in the period: 80 transactions, gross 97301.70, fee 1233.17, net 96068.53.
-- The overlap is 79 references, and the amounts match. Only in `decontat`: 10 transactions from 28–31 August, settled on 2026-09-01. Only in `autorizat`: one transaction on 2026-09-30, settled on 2026-10-01.
-- Both emails arrive together, and the columns and amounts of the shared rows match. The register is built from `decontat`. `autorizat` is gathered by authorization date and does not match the morning deposits: at the September boundary it drops 2026-09-01 for 8506.00 (10 transactions from 28–31 August) and adds 40.00 that the bank settled only on 2026-10-01. The inbox hook returns `None` for an `autorizat` email.
+- `autorizat` — authorized in the period: 80 transactions, payment dates 2026-09-01 through 2026-09-30, 27 `DataTransferului` dates from 2026-09-02 through 2026-10-01, gross 97301.70, fee 1233.17, net 96068.53. This file is the register.
+- `decontat` — settled in the period: 89 transactions, 27 transfer dates from 2026-09-01 through 2026-09-30, gross 105767.70, fee 1422.31, net 104345.39. This file does not create a register. The month is the transfer dates, so the last day of the month is missing and the end of the previous month is included.
+- The overlap is 79 references, and the amounts match. Only in `decontat`: 10 transactions from 28–31 August, settled on 2026-09-01 for 8506.00. Only in `autorizat`: one transaction on 2026-09-30, settled on 2026-10-01 for 40.00.
+- Both emails arrive together. The inbox skips the settled month and creates the register from the authorization report. Rows are still grouped by `DataTransferului`, so the 1 October deposit of the 30 September payment is matched to that morning’s bank line, and the 1 September deposit is left for the August authorization register.
 - Row columns: TerminalID, ReferintaTranzactiei, NumeTerminal, DataTranzactiei, DataTransferului, Tip_Tranzactie, Valuta, NrCARD (masked), SumaTranzactiei, Commission, SumaNumerar, Suma_net, SumaReversa, ReversSumaNumerar, ComisionReversat, Instant_Discount.
 - The external number is ReferintaTranzactiei, unique inside the file and stable across the two reports.
 - The fee is already on the row: InterIntra 2.5%, On us / Local / Friendly 1.2%. Cash, reversals, and the discount are zero in the samples; a non-zero reversal is not posted as a customer payment.
@@ -183,7 +185,7 @@ Files live in `erpnext_moldova_settlements/examples`. In all three sources a row
 **MAIB Ecomm** — three emails, sheet `MDL`, terminal `E0103299`, terminal name `www.hotel-life.md`. POS columns plus `ComisAuth`, `Depozit`, `SumaTranzactieiMDL`, `SumaReversaMDL`, `ComisAuthReversat`, `ApprovalCode`. In the daily emails `Instant_Discount` comes before `ApprovalCode`; in the monthly email it comes after. The parser reads columns by name. The presence of `ComisAuth` tells the file apart from POS.
 
 - `decontat20260909`: one operation `625107054986`, 2026-09-08, deposited 2026-09-09, 1940.00, `Commission` 58.20, `ComisAuth` 1.00, net 1880.80. The register fee is 59.20.
-- `lunar_decontat20261002`: the same RRN and the same deposit date. The monthly register copies the daily register’s documents and does not create its own posting for that day.
+- `lunar_decontat20261002`: the same RRN and the same deposit date. This settled month does not create a register. The monthly names are `aDetailPayEcommRep_lunar_autorizat20261102_Ecomm HOTEL LIFE S.R.L.xlsx`, which creates the register, and `aDetailPayEcommRep_lunar_decontat20261102_Ecomm HOTEL LIFE S.R.L.xlsx`, which does not. A day whose payments, fee, and net match the daily register copies that day’s documents and does not post them again.
 - `decontat20261017`: `628918131447`, 2026-10-16, deposited 2026-10-17, 640.00, fee 12.16 + 1.00, net 626.84.
 
 ## Parsers and posting
