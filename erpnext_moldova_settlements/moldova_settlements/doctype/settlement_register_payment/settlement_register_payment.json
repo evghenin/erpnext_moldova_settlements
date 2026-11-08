@@ -118,8 +118,10 @@
   },
   {
    "allow_on_submit": 1,
+   "columns": 2,
    "fieldname": "customer",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Customer",
    "options": "Customer"
   },

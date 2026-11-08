@@ -71,6 +71,7 @@ def read_source_file(doc):
 
 
 def validate_register(doc):
+	_keep_submitted_payment_rows(doc)
 	if not doc.payments:
 		frappe.throw(_("Attach the supplier file before saving."))
 	if not doc.company:
@@ -97,6 +98,18 @@ def validate_register(doc):
 		doc.status = "Reconciled" if register_is_reconciled(doc) else "Unreconciled"
 	_link_fee_payments(doc)
 	sync_reference_rows(doc)
+
+
+def _keep_submitted_payment_rows(doc):
+	if doc.docstatus != 1:
+		return
+	previous = doc.get_doc_before_save()
+	if not previous or previous.docstatus != 1:
+		return
+	before = {row.name for row in previous.payments}
+	after = {row.name for row in doc.payments}
+	if before != after:
+		frappe.throw(_("Payment rows cannot be added or removed after the register is submitted."))
 
 
 def refresh_submitted_register(doc):
@@ -1290,22 +1303,135 @@ def _is_reversal(row):
 	return any(flt(row.get(field)) for field in ("reversal_amount", "reversal_cash_amount", "reversed_fee"))
 
 
+_CANCELLED_LINK_FIELDS = {
+	"Journal Entry": "journal_entry",
+	"Payment Entry": "payment_entry",
+}
+_LINK_CHILD_TABLES = (
+	"Settlement Register Payment",
+	"Settlement Register Fee",
+	"Settlement Register Fee Debit",
+	"Settlement Register Deposit",
+	"Settlement Register Reference",
+)
+
+
+def release_cancelled_document(doctype, name):
+	field = _CANCELLED_LINK_FIELDS[doctype]
+	parents = set()
+	for child in _LINK_CHILD_TABLES:
+		if not frappe.get_meta(child).has_field(field):
+			continue
+		parents.update(
+			frappe.get_all(
+				child,
+				filters={"parenttype": "Settlement Register", field: name},
+				pluck="parent",
+			)
+		)
+	if doctype == "Journal Entry":
+		register = frappe.db.get_value("Journal Entry", name, "settlement_register")
+		if register:
+			parents.add(register)
+	for register in parents:
+		_release_register_link(register, field, name)
+
+
 def release_journal_links(register, journal_entry):
-	for doctype in (
-		"Settlement Register Fee",
-		"Settlement Register Fee Debit",
-		"Settlement Register Deposit",
-		"Settlement Register Reference",
-	):
-		for name in frappe.get_all(
-			doctype,
-			filters={"parent": register, "journal_entry": journal_entry},
+	_release_register_link(register, "journal_entry", journal_entry)
+
+
+def _release_register_link(register, field, name):
+	if not register or frappe.db.get_value("Settlement Register", register, "docstatus") != 1:
+		return
+	if ("Settlement Register", register) in frappe.flags.currently_saving:
+		_clear_stored_links(register, field, name)
+		return
+	doc = frappe.get_doc("Settlement Register", register)
+	_clear_doc_links(doc, field, name)
+	_link_fee_payments(doc)
+	_set_bullets(doc)
+	sync_reference_rows(doc)
+	doc.status = "Reconciled" if register_is_reconciled(doc) else "Unreconciled"
+	_store_released_register(doc)
+
+
+def _clear_doc_links(doc, field, name):
+	for row in doc.payments:
+		if row.get(field) != name:
+			continue
+		row.set(field, None)
+		if field == "payment_entry":
+			row.payment_created = 0
+	for row in doc.fees:
+		if row.get(field) != name:
+			continue
+		row.set(field, None)
+		if field == "journal_entry":
+			row.journal_created = 0
+	for row in (*doc.fee_debits, *doc.deposits, *doc.reference_rows):
+		if row.get(field) == name:
+			row.set(field, None)
+
+
+def _clear_stored_links(register, field, name):
+	for child in _LINK_CHILD_TABLES:
+		if not frappe.get_meta(child).has_field(field):
+			continue
+		for row_name in frappe.get_all(
+			child,
+			filters={"parent": register, field: name},
 			pluck="name",
 		):
-			values = {"journal_entry": None}
-			if doctype == "Settlement Register Fee":
+			values = {field: None}
+			if child == "Settlement Register Payment" and field == "payment_entry":
+				values["payment_created"] = 0
+			if child == "Settlement Register Fee" and field == "journal_entry":
 				values["journal_created"] = 0
-			frappe.db.set_value(doctype, name, values, update_modified=False)
+			frappe.db.set_value(child, row_name, values, update_modified=False)
+
+
+def _store_released_register(doc):
+	for row in doc.payments:
+		frappe.db.set_value(
+			row.doctype,
+			row.name,
+			{
+				"payment_entry": row.payment_entry,
+				"sales_invoice": row.sales_invoice,
+				"payment_created": row.payment_created,
+				"row_bullet": row.row_bullet,
+			},
+			update_modified=False,
+		)
+	for row in doc.fees:
+		frappe.db.set_value(
+			row.doctype,
+			row.name,
+			{
+				"journal_entry": row.journal_entry,
+				"journal_created": row.journal_created,
+				"payment_entry": row.payment_entry,
+				"external_number": row.external_number,
+				"row_bullet": row.row_bullet,
+			},
+			update_modified=False,
+		)
+	for row in doc.fee_debits:
+		frappe.db.set_value(row.doctype, row.name, "journal_entry", row.journal_entry, update_modified=False)
+	for row in doc.deposits:
+		frappe.db.set_value(
+			row.doctype,
+			row.name,
+			{
+				"payment_entry": row.payment_entry,
+				"journal_entry": row.journal_entry,
+				"row_bullet": row.row_bullet,
+			},
+			update_modified=False,
+		)
+	_replace_reference_rows(doc)
+	frappe.db.set_value("Settlement Register", doc.name, "status", doc.status, update_modified=False)
 
 
 def _cancel_linked(doctype, name):

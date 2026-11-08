@@ -1,6 +1,9 @@
 frappe.ui.form.on("Settlement Register", {
 	refresh(frm) {
 		frm.ignore_doctypes_on_cancel_all = ["Journal Entry", "Payment Entry"];
+		const submitted = frm.doc.docstatus > 0;
+		frm.set_df_property("payments", "cannot_add_rows", submitted);
+		frm.set_df_property("payments", "cannot_delete_rows", submitted);
 		show_fields(frm);
 		set_row_indicators(frm);
 		set_payment_queries(frm);
@@ -19,14 +22,14 @@ frappe.ui.form.on("Settlement Register", {
 		if (frm.doc.source) {
 			frm.add_custom_button(
 				__("Identify Deposit Bank Transactions"),
-				() => run_action(frm, "identify_deposits"),
+				() => run_identify(frm, "identify_deposits"),
 				__("Actions")
 			);
 		}
 		if (frm.doc.source === "MAIB POS") {
 			frm.add_custom_button(
 				__("Identify Fee Bank Transactions"),
-				() => run_action(frm, "identify_fee_debits"),
+				() => run_identify(frm, "identify_fee_debits"),
 				__("Actions")
 			);
 		}
@@ -43,7 +46,7 @@ frappe.ui.form.on("Settlement Register", {
 			if (row.search_payments) {
 				frm.add_custom_button(
 					__("Identify Payment Documents"),
-					() => run_action(frm, "identify_payments"),
+					() => run_identify(frm, "identify_payments"),
 					__("Actions")
 				);
 			}
@@ -144,6 +147,100 @@ function lock_customer(frm, cdt, cdn) {
 		return;
 	}
 	grid_row.toggle_editable("customer", !(row.payment_entry || row.sales_invoice));
+}
+
+function run_identify(frm, method) {
+	frappe.call({
+		method: `erpnext_moldova_settlements.moldova_settlements.doctype.settlement_register.settlement_register.${method}`,
+		args: {doc: frm.doc},
+		freeze: true,
+		callback(r) {
+			apply_identified(frm, r.message || {});
+		},
+	});
+}
+
+function apply_identified(frm, message) {
+	const filled =
+		(message.fee_debits || []).length +
+		count_new_links(frm, "payments", message.payments, ["payment_entry", "sales_invoice"]) +
+		count_new_links(frm, "deposits", message.deposits, ["bank_transaction"]);
+	const assignments = [];
+	collect_assignments(frm, assignments, "payments", message.payments, [
+		"customer",
+		"row_bullet",
+		"payment_entry",
+		"sales_invoice",
+	]);
+	collect_assignments(frm, assignments, "deposits", message.deposits, [
+		"row_bullet",
+		"bank_transaction",
+		"payment_entry",
+		"journal_entry",
+	]);
+	collect_assignments(frm, assignments, "fees", message.fees, ["row_bullet"]);
+	for (const incoming of message.fee_debits || []) {
+		frm.add_child("fee_debits", {
+			settlement_register_fee: incoming.settlement_register_fee,
+			amount: incoming.amount,
+			bank_transaction: incoming.bank_transaction,
+			journal_entry: incoming.journal_entry,
+			currency: incoming.currency || frm.doc.currency,
+		});
+	}
+	if (message.fee_debits && message.fee_debits.length) {
+		frm.dirty();
+		frm.refresh_field("fee_debits");
+	}
+	const apply_next = () => {
+		const next = assignments.shift();
+		if (!next) {
+			set_row_indicators(frm);
+			lock_linked_customers(frm);
+			frappe.show_alert({
+				message: filled
+					? __("Filled {0} rows in the form. Save the register to keep them.", [filled])
+					: __("Nothing matched."),
+				indicator: filled ? "green" : "orange",
+			});
+			return;
+		}
+		frappe.model.set_value(next.doctype, next.name, next.field, next.value).then(apply_next);
+	};
+	apply_next();
+}
+
+function count_new_links(frm, table, rows, fields) {
+	let count = 0;
+	for (const incoming of rows || []) {
+		const row = (frm.doc[table] || []).find((item) => item.name === incoming.name);
+		if (!row) {
+			continue;
+		}
+		if (fields.some((field) => incoming[field] && incoming[field] !== row[field])) {
+			count += 1;
+		}
+	}
+	return count;
+}
+
+function collect_assignments(frm, assignments, table, rows, fields) {
+	for (const incoming of rows || []) {
+		const row = (frm.doc[table] || []).find((item) => item.name === incoming.name);
+		if (!row) {
+			continue;
+		}
+		for (const field of fields) {
+			if (field !== "row_bullet" && !incoming[field]) {
+				continue;
+			}
+			const value = incoming[field] || "";
+			if ((row[field] || "") === value) {
+				continue;
+			}
+			assignments.push({doctype: row.doctype, name: row.name, field, value});
+		}
+	}
 }
 
 function run_action(frm, method) {

@@ -8,6 +8,9 @@ from frappe.tests.utils import FrappeTestCase
 from frappe.utils.file_manager import save_file
 
 from erpnext_moldova_settlements.moldova_settlements.parsers.register_file import DEPOSIT_PATTERNS
+from erpnext_moldova_settlements.moldova_settlements.doctype.settlement_register.settlement_register import (
+	identify_payments,
+)
 from erpnext_moldova_settlements.moldova_settlements.register import (
 	_invoice_reference_field,
 	create_payment_entries,
@@ -131,6 +134,40 @@ class TestSettlementRegister(FrappeTestCase):
 		third.company = COMPANY
 		self.assertRaises(frappe.ValidationError, third.insert)
 
+	def test_deleted_draft_is_replaced_when_the_inbox_handler_runs_again(self):
+		mail = self._inbox_with_register_file("novapay", "Реестр платежей №00000008204.XLSX")
+		first = self._run_inbox_handler(mail)
+		self.assertEqual(frappe.db.get_value("Settlement Register", first, "docstatus"), 0)
+		frappe.delete_doc("Settlement Register", first)
+		self.assertFalse(frappe.db.exists("Settlement Register", first))
+		queued = self._inbox_handler_row(mail)
+		self.assertEqual(queued.status, "Queued")
+		self.assertFalse(queued.reference_name)
+		second = self._run_inbox_handler(mail)
+		self.assertEqual(frappe.db.get_value("Settlement Register", second, "docstatus"), 0)
+		self.assertEqual(frappe.db.get_value("Settlement Register", second, "supplier_inbox_email"), mail)
+		row = self._inbox_handler_row(mail)
+		self.assertEqual(row.status, "Processed")
+		self.assertEqual(row.reference_doctype, "Settlement Register")
+		self.assertEqual(row.reference_name, second)
+
+	def test_cancelled_register_is_replaced_when_the_inbox_handler_runs_again(self):
+		mail = self._inbox_with_register_file("novapay", "Реестр платежей №00000016330.XLSX")
+		first = self._run_inbox_handler(mail)
+		frappe.get_doc("Settlement Register", first).submit()
+		frappe.get_doc("Settlement Register", first).cancel()
+		self.assertEqual(frappe.db.get_value("Settlement Register", first, "docstatus"), 2)
+		queued = self._inbox_handler_row(mail)
+		self.assertEqual(queued.status, "Queued")
+		self.assertEqual(queued.reference_name, first)
+		second = self._run_inbox_handler(mail)
+		self.assertNotEqual(second, first)
+		self.assertEqual(frappe.db.get_value("Settlement Register", second, "docstatus"), 0)
+		self.assertEqual(frappe.db.get_value("Settlement Register", second, "supplier_inbox_email"), mail)
+		row = self._inbox_handler_row(mail)
+		self.assertEqual(row.status, "Processed")
+		self.assertEqual(row.reference_name, second)
+
 	def test_journal_entry_can_be_cancelled_while_the_register_points_at_it(self):
 		from frappe.desk.form.linked_with import get_submitted_linked_docs
 
@@ -147,6 +184,10 @@ class TestSettlementRegister(FrappeTestCase):
 		self.assertEqual(frappe.db.get_value("Journal Entry", journal, "docstatus"), 2)
 		self.assertFalse(frappe.db.get_value("Settlement Register Fee", {"parent": doc.name}, "journal_entry"))
 		doc.reload()
+		self.assertEqual(doc.docstatus, 1)
+		self.assertEqual(doc.status, "Unreconciled")
+		self.assertFalse(doc.fees[0].journal_entry)
+		self.assertEqual(doc.fees[0].journal_created, 0)
 		doc.cancel()
 		self.assertEqual(doc.docstatus, 2)
 
@@ -228,6 +269,23 @@ class TestSettlementRegister(FrappeTestCase):
 		self.assertNotEqual(doc.payments[1].payment_entry, kept)
 		self.assertEqual(doc.payments[1].customer, self.customer)
 
+	def test_identify_payments_fills_the_response_and_leaves_the_register(self):
+		self._settings(create_payment_if_missing=1, search_payments=1)
+		self.payment(40)
+		doc = self.register(
+			"NovaPay",
+			"NP-identify-form",
+			[self.row(40, 1, 39, "SHMD-FORM")],
+		)
+		modified = frappe.db.get_value("Settlement Register", doc.name, "modified")
+		result = identify_payments(doc.as_dict())
+		doc.reload()
+		self.assertFalse(doc.payments[0].payment_entry)
+		self.assertEqual(frappe.db.get_value("Settlement Register", doc.name, "modified"), modified)
+		self.assertEqual(result["payments"][0]["name"], doc.payments[0].name)
+		self.assertTrue(result["payments"][0]["payment_entry"])
+		self.assertEqual(result["payments"][0]["customer"], self.customer)
+
 	def test_selected_customer_is_not_replaced(self):
 		self.payment(100)
 		doc = self.register(
@@ -238,6 +296,73 @@ class TestSettlementRegister(FrappeTestCase):
 		fill_payment_documents(doc)
 		self.assertEqual(doc.payments[0].customer, self.other_customer)
 		self.assertFalse(doc.payments[0].payment_entry)
+
+	def test_register_submits_without_a_customer(self):
+		self._settings(create_payment_if_missing=1, search_payments=1)
+		settings = frappe.get_single("Settlements Settings")
+		for row in settings.sources:
+			if row.company == COMPANY and row.source == "NovaPay":
+				row.default_customer = None
+		settings.save()
+		doc = self.register(
+			"NovaPay",
+			"NP-no-customer",
+			[self.row(100, 3, 97, "SHMD-NOCUST")],
+		)
+		self.assertFalse(doc.payments[0].customer)
+		doc.submit()
+		doc.reload()
+		self.assertEqual(doc.docstatus, 1)
+		self.assertFalse(doc.payments[0].customer)
+		self.assertEqual(doc.status, "Unreconciled")
+		self.assertTrue(doc.fees[0].journal_entry)
+
+	def test_customer_can_be_changed_after_submit(self):
+		doc = self.register(
+			"NovaPay",
+			"NP-change-customer",
+			[self.row(100, 3, 97, "SHMD-CHANGE")],
+		)
+		doc.submit()
+		doc.reload()
+		self.assertEqual(doc.payments[0].customer, self.customer)
+		doc.payments[0].customer = self.other_customer
+		doc.save()
+		doc.reload()
+		self.assertEqual(doc.docstatus, 1)
+		self.assertEqual(doc.payments[0].customer, self.other_customer)
+		self.assertFalse(doc.payments[0].payment_entry)
+
+	def test_cancelling_a_created_payment_leaves_the_register_submitted(self):
+		doc = self.register(
+			"NovaPay",
+			"NP-cancel-payment",
+			[self.row(100, 3, 97, "SHMD-CANCEL-PE")],
+		)
+		doc.submit()
+		create_payment_entries(doc)
+		doc.save()
+		doc.reload()
+		payment = doc.payments[0].payment_entry
+		bank_transaction = self.bank_transaction(
+			deposit=97,
+			description="PLATA PENTRU RAMBURS",
+			supplier=self.supplier,
+		)
+		frappe.db.set_value("Bank Transaction", bank_transaction, "status", "Reconciled")
+		doc.deposits[0].bank_transaction = bank_transaction
+		doc.save()
+		doc.reload()
+		self.assertEqual(doc.status, "Reconciled")
+		frappe.get_doc("Payment Entry", payment).cancel()
+		self.assertEqual(frappe.db.get_value("Payment Entry", payment, "docstatus"), 2)
+		doc.reload()
+		self.assertEqual(doc.docstatus, 1)
+		self.assertEqual(doc.status, "Unreconciled")
+		self.assertFalse(doc.payments[0].payment_entry)
+		self.assertEqual(doc.payments[0].payment_created, 0)
+		self.assertFalse(any(row.payment_entry == payment for row in doc.reference_rows))
+		self.assertTrue(doc.fees[0].journal_entry)
 
 	def test_submit_does_not_search_or_create_a_payment(self):
 		doc = self.register(
@@ -487,6 +612,52 @@ class TestSettlementRegister(FrappeTestCase):
 		fill_payment_documents(doc)
 		self.assertFalse(doc.payments[0].payment_entry)
 		self.assertFalse(doc.payments[0].sales_invoice)
+
+	def _inbox_with_register_file(self, folder, filename):
+		if not frappe.db.exists("DocType", "Supplier Inbox Email"):
+			self.skipTest("Supplier Inbox is not installed")
+		if frappe.db.exists("DocType", "Supplier Inbox Settings"):
+			frappe.db.set_single_value("Supplier Inbox Settings", "enabled", 1)
+		settings = frappe.get_single("Settlements Settings")
+		settings.sources = [
+			row for row in settings.sources if row.source != "NovaPay" or row.company == COMPANY
+		]
+		settings.save()
+		mail = frappe.get_doc({"doctype": "Supplier Inbox Email"}).insert(ignore_permissions=True)
+		path = EXAMPLES / folder / filename
+		attached = save_file(path.name, path.read_bytes(), "Supplier Inbox Email", mail.name, is_private=1)
+		if attached.file_name != path.name:
+			frappe.db.set_value("File", attached.name, "file_name", path.name, update_modified=False)
+		frappe.db.delete(
+			"Supplier Inbox Email Handler",
+			{"parent": mail.name, "handler": "erpnext_moldova_settlements.inbox.handle_inbound_email"},
+		)
+		mail.reload()
+		mail.append(
+			"handlers",
+			{
+				"handler": "erpnext_moldova_settlements.inbox.handle_inbound_email",
+				"status": "Queued",
+			},
+		)
+		mail.save(ignore_permissions=True)
+		return mail.name
+
+	def _run_inbox_handler(self, mail):
+		from erpnext_moldova_inbox.moldova_supplier_inbox.dispatch import run_handler
+
+		run_handler(mail, "erpnext_moldova_settlements.inbox.handle_inbound_email")
+		row = self._inbox_handler_row(mail)
+		self.assertEqual(row.status, "Processed", row.error)
+		return row.reference_name
+
+	def _inbox_handler_row(self, mail):
+		return frappe.db.get_value(
+			"Supplier Inbox Email Handler",
+			{"parent": mail, "handler": "erpnext_moldova_settlements.inbox.handle_inbound_email"},
+			["status", "reference_doctype", "reference_name", "error"],
+			as_dict=True,
+		)
 
 	def from_file(self, folder, filename):
 		path = EXAMPLES / folder / filename

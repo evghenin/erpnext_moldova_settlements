@@ -47,6 +47,8 @@ Green,Зелёный
 Identify Fee Bank Transactions,Автоматически определить BT комиссионов
 Identify Deposit Bank Transactions,Автоматически определить BT зачислений
 Identify Payment Documents,Автоматически определить платежные документы
+Filled {0} rows in the form. Save the register to keep them.,"Заполнено строк: {0}. Сохраните реестр, чтобы записать результат."
+Nothing matched.,Ничего не найдено.
 Instant Discount,Мгновенная скидка
 Journal Entry,Журнальная проводка
 Net Amount,Нетто
@@ -70,6 +72,7 @@ Payment Entry {0} is in another currency.,Платёжное поручение 
 Payment Entry {0} is not paid to the clearing account.,Платёжное поручение {0} проведено не на клиринговый счёт.
 Payments are created after the register is submitted.,Оплаты создаются после проведения реестра.
 Payment row needs one link: Payment Entry or Sales Invoice.,В строке платежа нужна одна связь: платёжное поручение или счёт продажи.
+Payment rows cannot be added or removed after the register is submitted.,Строки платежей нельзя добавлять или удалять после проведения реестра.
 Payments,Платежи
 Receipt Date,Дата приёма
 Reconciled,Сверен

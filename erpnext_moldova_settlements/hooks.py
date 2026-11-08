@@ -47,7 +47,10 @@ inbound_email_handlers = [
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-# doctype_js = {"doctype" : "public/js/doctype.js"}
+doctype_js = {
+	"Journal Entry": "public/js/journal_entry.js",
+	"Payment Entry": "public/js/payment_entry.js",
+}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -157,6 +160,9 @@ doc_events = {
 	},
 	"Journal Entry": {
 		"before_cancel": "erpnext_moldova_settlements.moldova_settlements.journal_entry.before_cancel",
+	},
+	"Payment Entry": {
+		"before_cancel": "erpnext_moldova_settlements.moldova_settlements.payment_entry.before_cancel",
 	},
 }
 
