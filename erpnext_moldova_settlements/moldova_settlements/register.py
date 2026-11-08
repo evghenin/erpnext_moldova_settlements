@@ -986,14 +986,14 @@ def _create_missing_payments(doc):
 		payment = frappe.new_doc("Payment Entry")
 		payment.payment_type = "Receive"
 		payment.company = doc.company
-		payment.posting_date = row.transfer_date or doc.posting_date
+		payment.posting_date = row.payment_date or row.transfer_date or doc.posting_date
 		payment.party_type = "Customer"
 		payment.party = row.customer
 		payment.paid_amount = row.payment_amount
 		payment.received_amount = row.payment_amount
 		payment.mode_of_payment = doc.mode_of_payment
 		payment.reference_no = row.external_number or doc.name
-		payment.reference_date = payment.posting_date
+		payment.reference_date = row.payment_date or payment.posting_date
 		payment.paid_to = doc.clearing_account
 		payment.remarks = doc.name
 		payment.setup_party_account_field()

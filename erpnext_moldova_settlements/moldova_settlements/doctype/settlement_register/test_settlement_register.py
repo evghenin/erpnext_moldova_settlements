@@ -395,11 +395,9 @@ class TestSettlementRegister(FrappeTestCase):
 		self.assertEqual(frappe.db.count("Payment Entry", {"reference_no": "SHMD-NOSRCH"}), 0)
 
 	def test_create_payment_uses_the_row_amount_and_mode(self):
-		doc = self.register(
-			"NovaPay",
-			"NP-create",
-			[self.row(100, 3, 97, "SHMD-CREATE")],
-		)
+		row = self.row(100, 3, 97, "SHMD-CREATE")
+		row["payment_date"] = "2026-09-01"
+		doc = self.register("NovaPay", "NP-create", [row])
 		doc.submit()
 		create_payment_entries(doc)
 		doc.save()
@@ -409,6 +407,8 @@ class TestSettlementRegister(FrappeTestCase):
 		self.assertEqual(payment.paid_to, self.clearing)
 		self.assertEqual(payment.mode_of_payment, self.mode)
 		self.assertEqual(payment.party, self.customer)
+		self.assertEqual(str(payment.posting_date), "2026-09-01")
+		self.assertEqual(str(payment.reference_date), "2026-09-01")
 		self.assertEqual(doc.payments[0].payment_created, 1)
 		create_payment_entries(doc)
 		doc.save()
