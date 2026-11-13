@@ -72,17 +72,26 @@ frappe.ui.form.on("Settlement Register", {
 	},
 });
 
+frappe.ui.form.on("Settlement Register Fee", {
+	purchase_invoice(frm, cdt, cdn) {
+		refresh_row_indicator(frm, "fees", cdn, "credit_date");
+	},
+	journal_entry(frm, cdt, cdn) {
+		refresh_row_indicator(frm, "fees", cdn, "credit_date");
+	},
+});
+
 frappe.ui.form.on("Settlement Register Payment", {
 	form_render(frm, cdt, cdn) {
 		lock_customer(frm, cdt, cdn);
 	},
 	payment_entry(frm, cdt, cdn) {
 		fill_customer_from_link(frm, cdt, cdn);
-		refresh_payment_indicator(frm, cdn);
+		refresh_row_indicator(frm, "payments", cdn, "external_number");
 	},
 	sales_invoice(frm, cdt, cdn) {
 		fill_customer_from_link(frm, cdt, cdn);
-		refresh_payment_indicator(frm, cdn);
+		refresh_row_indicator(frm, "payments", cdn, "external_number");
 	},
 });
 
@@ -294,16 +303,19 @@ function run_action(frm, method) {
 	call();
 }
 
-function refresh_payment_indicator(frm, cdn) {
-	const grid = frm.fields_dict.payments && frm.fields_dict.payments.grid;
+function refresh_row_indicator(frm, table, cdn, fieldname) {
+	const grid = frm.fields_dict[table] && frm.fields_dict[table].grid;
 	const grid_row = grid && grid.grid_rows_by_docname && grid.grid_rows_by_docname[cdn];
 	if (grid_row) {
-		grid_row.refresh_field("external_number");
+		grid_row.refresh_field(fieldname);
 	}
 }
 
 function indicator_color(table, doc) {
 	if (table === "payments" && doc && (doc.payment_entry || doc.sales_invoice)) {
+		return "green";
+	}
+	if (table === "fees" && doc && (doc.purchase_invoice || doc.journal_entry)) {
 		return "green";
 	}
 	return {Green: "green", Yellow: "yellow", Red: "red"}[doc && doc.row_bullet] || "gray";
