@@ -1643,7 +1643,7 @@ def _set_bullets(doc):
 		if doc.source == "MAIB POS":
 			row.row_bullet = "Green" if _debits_ready(doc, row) else "Red"
 			continue
-		if row.journal_entry or not flt(row.fee_amount):
+		if row.journal_entry or row.purchase_invoice or not flt(row.fee_amount):
 			row.row_bullet = "Green"
 		elif doc.source in INVOICE_FEE_SOURCES and row.credit_date and doc.clearing_account:
 			row.row_bullet = "Yellow"
