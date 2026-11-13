@@ -9,10 +9,12 @@ from erpnext_moldova_settlements.inbox import release_inbox_handler
 from erpnext_moldova_settlements.moldova_settlements.register import (
 	before_cancel_register,
 	before_submit_register,
+	commission_invoice_query as search_commission_invoices,
 	create_payment_entries,
 	fill_fee_debits,
 	fill_deposit_transactions,
 	fill_payment_documents,
+	find_fee_invoices,
 	read_source_file,
 	refresh_submitted_register,
 	release_journal_register_link,
@@ -94,7 +96,12 @@ def _identified(doc, fee_debits=None):
 			for row in doc.deposits
 		],
 		"fees": [
-			{"name": row.name, "row_bullet": row.row_bullet, "journal_entry": row.journal_entry}
+			{
+				"name": row.name,
+				"row_bullet": row.row_bullet,
+				"journal_entry": row.journal_entry,
+				"purchase_invoice": row.purchase_invoice,
+			}
 			for row in doc.fees
 		],
 		"fee_debits": fee_debits or [],
@@ -125,6 +132,18 @@ def identify_fee_debits(doc):
 		if row.name not in before
 	]
 	return _identified(doc, added)
+
+
+@frappe.whitelist()
+def commission_invoice_query(doctype, txt, searchfield, start, page_len, filters):
+	return search_commission_invoices(doctype, txt, searchfield, start, page_len, filters)
+
+
+@frappe.whitelist()
+def identify_fee_invoices(doc):
+	doc = _form_doc(doc)
+	find_fee_invoices(doc)
+	return _identified(doc)
 
 
 @frappe.whitelist()

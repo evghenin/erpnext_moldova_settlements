@@ -35,6 +35,8 @@ test_ignore = [
 	"Journal Entry",
 	"Mode of Payment",
 	"Payment Entry",
+	"Purchase Invoice",
+	"Purchase eFactura",
 	"Sales Invoice",
 	"Supplier",
 	"Settlement Register",
@@ -109,14 +111,11 @@ class TestSettlementRegister(FrappeTestCase):
 		self.assertEqual(doc.status, "Unreconciled")
 		self.assertFalse(doc.payments[0].payment_entry)
 		self.assertEqual(len(doc.fees), 1)
-		self.assertTrue(doc.fees[0].journal_entry)
-		self.assertEqual(doc.fees[0].journal_created, 1)
-		journal = frappe.get_doc("Journal Entry", doc.fees[0].journal_entry)
-		self.assertFalse(journal.cheque_no)
-		self.assertEqual(journal.docstatus, 1)
+		self.assertFalse(doc.fees[0].journal_entry)
+		self.assertEqual(doc.fees[0].journal_created, 0)
 		self.assertEqual(
 			frappe.db.count("Journal Entry", {"settlement_register": doc.name, "docstatus": 1}),
-			1,
+			0,
 		)
 		self.assertEqual(frappe.db.get_value("Payment Entry", payment, "docstatus"), 1)
 
@@ -124,9 +123,8 @@ class TestSettlementRegister(FrappeTestCase):
 		source = novapay_file("10000000014", _ONE_PAYMENT)
 		doc = self.from_file(source)
 		doc.submit()
-		journal = doc.fees[0].journal_entry
+		self.assertFalse(doc.fees[0].journal_entry)
 		doc.cancel()
-		self.assertEqual(frappe.db.get_value("Journal Entry", journal, "docstatus"), 2)
 		again = self.from_file(source)
 		self.assertEqual(again.register_number, "NP-10000000014")
 		self.assertEqual(doc.register_number, "NP-10000000014")
@@ -176,7 +174,9 @@ class TestSettlementRegister(FrappeTestCase):
 	def test_cancelled_register_can_be_deleted_while_its_journal_entry_remains(self):
 		doc = self.from_file(novapay_file("10000000017", _ONE_PAYMENT))
 		doc.submit()
+		doc = self.allocate_invoice(doc, self.commission_invoice(3))
 		journal = doc.fees[0].journal_entry
+		self.assertTrue(journal)
 		doc.cancel()
 		self.assertEqual(frappe.db.get_value("Journal Entry", journal, "docstatus"), 2)
 		self.assertEqual(frappe.db.get_value("Journal Entry", journal, "settlement_register"), doc.name)
@@ -190,6 +190,7 @@ class TestSettlementRegister(FrappeTestCase):
 
 		doc = self.from_file(novapay_file("10000000018", _ONE_PAYMENT))
 		doc.submit()
+		doc = self.allocate_invoice(doc, self.commission_invoice(3))
 		journal = doc.fees[0].journal_entry
 		linked = get_submitted_linked_docs("Settlement Register", doc.name)["docs"]
 		self.assertIn({"doctype": "Journal Entry", "name": journal, "docstatus": 1}, linked)
@@ -332,7 +333,7 @@ class TestSettlementRegister(FrappeTestCase):
 		self.assertEqual(doc.docstatus, 1)
 		self.assertFalse(doc.payments[0].customer)
 		self.assertEqual(doc.status, "Unreconciled")
-		self.assertTrue(doc.fees[0].journal_entry)
+		self.assertFalse(doc.fees[0].journal_entry)
 
 	def test_customer_can_be_changed_after_submit(self):
 		doc = self.register(
@@ -379,7 +380,7 @@ class TestSettlementRegister(FrappeTestCase):
 		self.assertFalse(doc.payments[0].payment_entry)
 		self.assertEqual(doc.payments[0].payment_created, 0)
 		self.assertFalse(any(row.payment_entry == payment for row in doc.reference_rows))
-		self.assertTrue(doc.fees[0].journal_entry)
+		self.assertFalse(doc.fees[0].journal_entry)
 
 	def test_submit_does_not_search_or_create_a_payment(self):
 		doc = self.register(
@@ -744,6 +745,194 @@ class TestSettlementRegister(FrappeTestCase):
 			as_dict=True,
 		)
 
+	def test_megamega_submit_does_not_post_a_fee_journal(self):
+		doc = self.from_file(megamega_file())
+		doc.submit()
+		doc.reload()
+		self.assertFalse(doc.fees[0].journal_entry)
+		self.assertFalse(frappe.db.exists("Journal Entry", {"settlement_register": doc.name}))
+
+	def test_fee_invoices_pay_the_purchase_invoice_when_the_total_matches(self):
+		first = self.register("NovaPay", "NP-fee-a", [self.row(100, 3, 97, "SHMD-FEE-A")])
+		second = self.register("NovaPay", "NP-fee-b", [self.row(100, 3, 97, "SHMD-FEE-B")])
+		first.submit()
+		second.submit()
+		invoice = self.commission_invoice(6)
+		first = self.allocate_invoice(first, invoice)
+		self.assertFalse(first.fees[0].journal_entry)
+		self.assertEqual(round(frappe.db.get_value("Purchase Invoice", invoice, "outstanding_amount"), 2), 6)
+		second = self.allocate_invoice(second, invoice)
+		first.reload()
+		self.assertTrue(first.fees[0].journal_entry)
+		self.assertEqual(first.fees[0].journal_created, 1)
+		self.assertTrue(second.fees[0].journal_entry)
+		journal = frappe.get_doc("Journal Entry", first.fees[0].journal_entry)
+		self.assertEqual(str(journal.posting_date), "2026-11-10")
+		self.assertEqual(journal.settlement_register, first.name)
+		debit = [row for row in journal.accounts if row.debit]
+		credit = [row for row in journal.accounts if row.credit]
+		self.assertEqual(debit[0].account, self.payable_account())
+		self.assertEqual(debit[0].party, self.supplier)
+		self.assertEqual(debit[0].reference_type, "Purchase Invoice")
+		self.assertEqual(debit[0].reference_name, invoice)
+		self.assertEqual(round(debit[0].debit, 2), 3)
+		self.assertEqual(credit[0].account, self.clearing)
+		self.assertEqual(round(credit[0].credit, 2), 3)
+		self.assertEqual(round(frappe.db.get_value("Purchase Invoice", invoice, "outstanding_amount"), 2), 0)
+		self.assertIn(invoice, [row.purchase_invoice for row in first.fees])
+
+	def test_fee_allocation_cannot_exceed_the_purchase_invoice(self):
+		first = self.register("NovaPay", "NP-fee-cap", [self.row(100, 3, 97, "SHMD-FEE-CAP")])
+		first.submit()
+		invoice = self.commission_invoice(3)
+		self.allocate_invoice(first, invoice)
+		extra = self.register("NovaPay", "NP-fee-over", [self.row(100, 3, 97, "SHMD-FEE-OVER")])
+		extra.submit()
+		extra.fees[0].purchase_invoice = invoice
+		self.assertRaises(frappe.ValidationError, extra.save)
+
+	def test_commission_invoice_must_belong_to_the_source_supplier(self):
+		doc = self.register("NovaPay", "NP-fee-supplier", [self.row(100, 3, 97, "SHMD-FEE-SUP")])
+		doc.submit()
+		invoice = self.commission_invoice(3, supplier=self.other_supplier)
+		doc.fees[0].purchase_invoice = invoice
+		self.assertRaises(frappe.ValidationError, doc.save)
+
+	def test_identify_commission_invoices_uses_the_efactura_month(self):
+		if not frappe.get_meta("Purchase Invoice").has_field("purchase_efactura"):
+			self.skipTest("Purchase Invoice has no eFactura link")
+		invoice = self.commission_invoice(3, delivery_date="2026-09-30")
+		october = self.commission_invoice(3, delivery_date="2026-10-31")
+		doc = self.register("NovaPay", "NP-fee-find", [self.row(100, 3, 97, "SHMD-FEE-FIND")])
+		doc.submit()
+		from erpnext_moldova_settlements.moldova_settlements.doctype.settlement_register.settlement_register import (
+			identify_fee_invoices,
+		)
+
+		found = identify_fee_invoices(doc.as_dict())
+		self.assertEqual(found["fees"][0]["purchase_invoice"], invoice)
+		doc.reload()
+		self.assertFalse(doc.fees[0].purchase_invoice)
+		doc.fees[0].purchase_invoice = october
+		self.assertRaises(frappe.ValidationError, doc.save)
+
+	def test_legacy_fee_journal_still_matches_the_commission_invoice(self):
+		if not frappe.get_meta("Purchase Invoice").has_field("purchase_efactura"):
+			self.skipTest("Purchase Invoice has no eFactura link")
+		doc = self.register("NovaPay", "NP-fee-legacy", [self.row(100, 3, 97, "SHMD-FEE-LEGACY")])
+		doc.submit()
+		legacy = self.journal(3)
+		frappe.db.set_value("Journal Entry", legacy, "settlement_register", doc.name, update_modified=False)
+		frappe.db.set_value(
+			"Settlement Register Fee",
+			doc.fees[0].name,
+			{"journal_entry": legacy, "journal_created": 1},
+			update_modified=False,
+		)
+		doc.reload()
+		invoice = self.commission_invoice(3, delivery_date="2026-09-30")
+		from erpnext_moldova_settlements.moldova_settlements.doctype.settlement_register.settlement_register import (
+			identify_fee_invoices,
+		)
+
+		found = identify_fee_invoices(doc.as_dict())
+		self.assertEqual(found["fees"][0]["purchase_invoice"], invoice)
+		doc.fees[0].purchase_invoice = invoice
+		doc.save()
+		doc.reload()
+		self.assertEqual(doc.fees[0].purchase_invoice, invoice)
+		self.assertEqual(frappe.db.get_value("Journal Entry", legacy, "docstatus"), 2)
+		self.assertTrue(doc.fees[0].journal_entry)
+		self.assertNotEqual(doc.fees[0].journal_entry, legacy)
+		self.assertEqual(round(frappe.db.get_value("Purchase Invoice", invoice, "outstanding_amount"), 2), 0)
+		payment = frappe.get_doc("Journal Entry", doc.fees[0].journal_entry)
+		debit = [row for row in payment.accounts if row.debit and row.reference_name == invoice]
+		self.assertEqual(round(debit[0].debit, 2), 3)
+
+	def test_full_commission_invoices_are_hidden_from_search_and_the_list(self):
+		if not frappe.get_meta("Purchase Invoice").has_field("purchase_efactura"):
+			self.skipTest("Purchase Invoice has no eFactura link")
+		open_invoice = self.commission_invoice(3, delivery_date="2026-09-30")
+		full = self.commission_invoice(3, delivery_date="2026-09-30")
+		other = self.commission_invoice(3, supplier=self.other_supplier, delivery_date="2026-09-30")
+		holder = self.register("NovaPay", "NP-fee-full", [self.row(100, 3, 97, "SHMD-FEE-FULL")])
+		holder.submit()
+		self.allocate_invoice(holder, full)
+		doc = self.register("NovaPay", "NP-fee-open", [self.row(100, 3, 97, "SHMD-FEE-OPEN")])
+		doc.submit()
+		from erpnext_moldova_settlements.moldova_settlements.doctype.settlement_register.settlement_register import (
+			commission_invoice_query,
+			identify_fee_invoices,
+		)
+
+		rows = commission_invoice_query(
+			"Purchase Invoice",
+			"",
+			"name",
+			0,
+			20,
+			{"company": COMPANY, "source": "NovaPay", "currency": "MDL"},
+		)
+		names = [row[0] for row in rows]
+		self.assertIn(open_invoice, names)
+		self.assertNotIn(full, names)
+		self.assertNotIn(other, names)
+		shown = next(row for row in rows if row[0] == open_invoice)
+		self.assertEqual(shown[1], frappe.db.get_value("Purchase Invoice", open_invoice, "supplier_name"))
+		self.assertEqual(shown[2], "3.00 MDL")
+		self.assertEqual(shown[3], "2026-11-10")
+		found = identify_fee_invoices(doc.as_dict())
+		self.assertEqual(found["fees"][0]["purchase_invoice"], open_invoice)
+
+	def test_identify_commission_invoices_leaves_a_row_when_the_invoice_has_no_room(self):
+		if not frappe.get_meta("Purchase Invoice").has_field("purchase_efactura"):
+			self.skipTest("Purchase Invoice has no eFactura link")
+		self.commission_invoice(2, delivery_date="2026-09-30")
+		doc = self.register("NovaPay", "NP-fee-room", [self.row(100, 3, 97, "SHMD-FEE-ROOM")])
+		doc.submit()
+		from erpnext_moldova_settlements.moldova_settlements.doctype.settlement_register.settlement_register import (
+			identify_fee_invoices,
+		)
+
+		found = identify_fee_invoices(doc.as_dict())
+		self.assertFalse(found["fees"][0]["purchase_invoice"])
+
+	def test_cancelling_a_register_reopens_its_share_of_the_purchase_invoice(self):
+		first = self.register("NovaPay", "NP-fee-cancel-a", [self.row(100, 3, 97, "SHMD-FEE-CA")])
+		second = self.register("NovaPay", "NP-fee-cancel-b", [self.row(100, 3, 97, "SHMD-FEE-CB")])
+		first.submit()
+		second.submit()
+		invoice = self.commission_invoice(6)
+		self.allocate_invoice(first, invoice)
+		second = self.allocate_invoice(second, invoice)
+		first.reload()
+		journal = first.fees[0].journal_entry
+		first.cancel()
+		self.assertEqual(frappe.db.get_value("Journal Entry", journal, "docstatus"), 2)
+		self.assertEqual(frappe.db.get_value("Journal Entry", second.fees[0].journal_entry, "docstatus"), 1)
+		self.assertEqual(round(frappe.db.get_value("Purchase Invoice", invoice, "outstanding_amount"), 2), 3)
+		replacement = self.register("NovaPay", "NP-fee-cancel-c", [self.row(100, 3, 97, "SHMD-FEE-CC")])
+		replacement.submit()
+		replacement = self.allocate_invoice(replacement, invoice)
+		self.assertTrue(replacement.fees[0].journal_entry)
+		self.assertEqual(round(frappe.db.get_value("Purchase Invoice", invoice, "outstanding_amount"), 2), 0)
+
+	def test_register_dashboard_links_purchase_invoices(self):
+		from erpnext_moldova_settlements.moldova_settlements.doctype.settlement_register.settlement_register_dashboard import (
+			get_data,
+		)
+		from erpnext_moldova_settlements.moldova_settlements.purchase_invoice import (
+			get_dashboard_data,
+		)
+
+		register = get_data()
+		self.assertIn("Purchase Invoice", register["transactions"][0]["items"])
+		self.assertEqual(register["internal_links"]["Purchase Invoice"], ["fees", "purchase_invoice"])
+		invoice = get_dashboard_data(
+			{"transactions": [{"label": "Payment", "items": ["Payment Entry"]}], "fieldname": "purchase_invoice"}
+		)
+		self.assertIn("Settlement Register", invoice["transactions"][0]["items"])
+
 	def from_file(self, path):
 		attached = save_file(path.name, path.read_bytes(), None, None, is_private=1)
 		if attached.file_name != path.name:
@@ -849,6 +1038,74 @@ class TestSettlementRegister(FrappeTestCase):
 		doc.insert()
 		doc.submit()
 		return doc.name
+
+	def allocate_invoice(self, doc, invoice):
+		doc.reload()
+		for row in doc.fees:
+			row.purchase_invoice = invoice
+		doc.save()
+		doc.reload()
+		return doc
+
+	def commission_invoice(self, amount, posting_date="2026-11-10", supplier=None, delivery_date=None):
+		efactura = self.efactura(delivery_date) if delivery_date else None
+		invoice = frappe.new_doc("Purchase Invoice")
+		invoice.company = COMPANY
+		invoice.supplier = supplier or self.supplier
+		invoice.currency = "MDL"
+		invoice.set_posting_time = 1
+		invoice.posting_date = posting_date
+		invoice.credit_to = self.payable_account()
+		invoice.append(
+			"items",
+			{
+				"item_code": self.item,
+				"qty": 1,
+				"rate": amount,
+				"expense_account": self.fee,
+				"cost_center": frappe.get_cached_value("Company", COMPANY, "cost_center"),
+			},
+		)
+		invoice.set_missing_values()
+		invoice.credit_to = self.payable_account()
+		invoice.taxes_and_charges = None
+		invoice.set("taxes", [])
+		row = invoice.items[0]
+		row.qty = 1
+		row.rate = amount
+		row.price_list_rate = amount
+		row.expense_account = self.fee
+		row.cost_center = frappe.get_cached_value("Company", COMPANY, "cost_center")
+		invoice.insert()
+		invoice.submit()
+		if efactura and frappe.get_meta("Purchase Invoice").has_field("purchase_efactura"):
+			frappe.db.set_value(
+				"Purchase Invoice", invoice.name, "purchase_efactura", efactura, update_modified=False
+			)
+		return invoice.name
+
+	def efactura(self, delivery_date):
+		if not frappe.db.exists("DocType", "Purchase eFactura"):
+			self.skipTest("Purchase eFactura is not installed")
+		doc = frappe.new_doc("Purchase eFactura")
+		doc.flags.ignore_validate = True
+		doc.flags.ignore_mandatory = True
+		doc.flags.from_efactura_sync = True
+		doc.company = COMPANY
+		doc.currency = "MDL"
+		doc.ef_currency = "MDL"
+		doc.ef_series = "EBO"
+		doc.ef_number = frappe.generate_hash(length=8)
+		doc.delivery_date = delivery_date
+		doc.naming_series = "ACC-PEF-.YYYY.-"
+		doc.insert(ignore_permissions=True, ignore_mandatory=True)
+		return doc.name
+
+	def payable_account(self):
+		account = frappe.db.get_value("Company", COMPANY, "default_payable_account")
+		if account:
+			return account
+		return _ledger(COMPANY, "Liability", "_Settlements Payable", "Payable")
 
 	def journal(self, amount):
 		journal = frappe.new_doc("Journal Entry")

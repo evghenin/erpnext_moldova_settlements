@@ -40,6 +40,7 @@
   },
   {
    "allow_on_submit": 1,
+   "description": "MAIB POS. The Journal Entry reconciled to this fee withdrawal.",
    "fieldname": "journal_entry",
    "fieldtype": "Link",
    "in_list_view": 1,

@@ -7,6 +7,7 @@ frappe.ui.form.on("Settlement Register", {
 		show_fields(frm);
 		set_row_indicators(frm);
 		set_payment_queries(frm);
+		set_invoice_query(frm);
 		frm.set_query("bank_account", () => ({
 			filters: {company: frm.doc.company},
 		}));
@@ -30,6 +31,13 @@ frappe.ui.form.on("Settlement Register", {
 			frm.add_custom_button(
 				__("Identify Fee Bank Transactions"),
 				() => run_identify(frm, "identify_fee_debits"),
+				__("Actions")
+			);
+		}
+		if (frm.doc.source === "NovaPay" || frm.doc.source === "MegaMega") {
+			frm.add_custom_button(
+				__("Identify Commission Invoices"),
+				() => run_identify(frm, "identify_fee_invoices"),
 				__("Actions")
 			);
 		}
@@ -81,6 +89,26 @@ frappe.ui.form.on("Settlement Register Payment", {
 function show_fields(frm) {
 	frm.toggle_display("bank_account", true);
 	frm.toggle_display("fee_account", frm.doc.source !== "MAIB POS");
+	const grid = frm.fields_dict.fees && frm.fields_dict.fees.grid;
+	if (!grid || !grid.update_docfield_property) {
+		return;
+	}
+	const show_invoice = frm.doc.source === "NovaPay" || frm.doc.source === "MegaMega";
+	grid.update_docfield_property("purchase_invoice", "hidden", show_invoice ? 0 : 1);
+}
+
+function set_invoice_query(frm) {
+	if (frm.doc.source !== "NovaPay" && frm.doc.source !== "MegaMega") {
+		return;
+	}
+	frm.set_query("purchase_invoice", "fees", () => ({
+		query: "erpnext_moldova_settlements.moldova_settlements.doctype.settlement_register.settlement_register.commission_invoice_query",
+		filters: {
+			company: frm.doc.company,
+			source: frm.doc.source,
+			currency: frm.doc.currency,
+		},
+	}));
 }
 
 function set_payment_queries(frm) {
@@ -165,7 +193,7 @@ function apply_identified(frm, message) {
 		(message.fee_debits || []).length +
 		count_new_links(frm, "payments", message.payments, ["payment_entry", "sales_invoice"]) +
 		count_new_links(frm, "deposits", message.deposits, ["bank_transaction"]) +
-		count_new_links(frm, "fees", message.fees, ["journal_entry"]);
+		count_new_links(frm, "fees", message.fees, ["purchase_invoice", "journal_entry"]);
 	const assignments = [];
 	collect_assignments(frm, assignments, "payments", message.payments, [
 		"customer",
@@ -179,7 +207,11 @@ function apply_identified(frm, message) {
 		"payment_entry",
 		"journal_entry",
 	]);
-	collect_assignments(frm, assignments, "fees", message.fees, ["row_bullet", "journal_entry"]);
+	collect_assignments(frm, assignments, "fees", message.fees, [
+		"row_bullet",
+		"journal_entry",
+		"purchase_invoice",
+	]);
 	for (const incoming of message.fee_debits || []) {
 		frm.add_child("fee_debits", {
 			settlement_register_fee: incoming.settlement_register_fee,

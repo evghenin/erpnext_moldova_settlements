@@ -6,6 +6,8 @@ from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
 
 def before_cancel(doc, method=None):
+	if doc.flags.get("skip_settlement_release"):
+		return
 	from erpnext_moldova_settlements.moldova_settlements.register import release_cancelled_document
 
 	release_cancelled_document("Journal Entry", doc.name)
