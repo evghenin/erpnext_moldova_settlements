@@ -6,7 +6,7 @@
 import frappe
 from frappe import _
 from frappe.model.naming import set_new_name
-from frappe.utils import cint, flt, getdate
+from frappe.utils import cint, flt, formatdate, getdate
 
 from erpnext_moldova_settlements.moldova_settlements.parsers.register_file import (
 	CARD_FEE_DESCRIPTION,
@@ -18,6 +18,7 @@ from erpnext_moldova_settlements.moldova_settlements.parsers.register_file impor
 	parse_register_file,
 )
 
+INVOICE_FEE_SOURCES = ("NovaPay", "MegaMega")
 MONEY_FIELDS = (
 	"payment_amount",
 	"fee_amount",
@@ -83,6 +84,7 @@ def validate_register(doc):
 	copy_source_settings(doc)
 	_validate_accounts(doc)
 	_validate_payment_links(doc)
+	_validate_fee_invoices(doc)
 	_validate_external_numbers(doc)
 	sync_groups(doc)
 	_adopt_ecomm_links(doc)
@@ -113,6 +115,8 @@ def _keep_submitted_payment_rows(doc):
 
 
 def refresh_submitted_register(doc):
+	if not doc.flags.get("skip_fee_invoice_payment"):
+		_pay_fee_invoices(doc)
 	_copy_reconciled_vouchers(doc)
 	_set_bullets(doc)
 	doc.status = "Reconciled" if register_is_reconciled(doc) else "Unreconciled"
@@ -121,8 +125,9 @@ def refresh_submitted_register(doc):
 
 
 def before_submit_register(doc):
-	if doc.source != "MAIB POS":
+	if doc.source == "MAIB Ecomm":
 		_create_fee_entries(doc)
+	_pay_fee_invoices(doc)
 	_copy_reconciled_vouchers(doc)
 	doc.status = "Reconciled" if register_is_reconciled(doc) else "Unreconciled"
 	_set_bullets(doc)
@@ -863,6 +868,387 @@ def _copy_fee_journal_entries(doc):
 			)
 
 
+def find_fee_invoices(doc):
+	if doc.source not in INVOICE_FEE_SOURCES:
+		return
+	settings = get_source_settings(doc.company, doc.source)
+	if not settings or not settings.supplier:
+		frappe.throw(_("Set the supplier for {0}.").format(doc.source))
+	if not _invoice_has_efactura_link():
+		frappe.msgprint(_("Purchase Invoice has no eFactura link."))
+		return
+	open_rows = [
+		row
+		for row in doc.fees
+		if flt(row.fee_amount)
+		and not row.purchase_invoice
+		and row.credit_date
+		and not _journal_pays_invoice(row.journal_entry)
+	]
+	months = {}
+	for row in open_rows:
+		months.setdefault(_month_key(row.credit_date), []).append(row)
+	for key in months:
+		rows = months[key]
+		matches = _commission_invoices(doc, settings.supplier, key)
+		label = formatdate(rows[0].credit_date, "MMM yyyy")
+		if len(matches) != 1:
+			frappe.msgprint(
+				_("No single commission invoice matches {0}.").format(label)
+				if not matches
+				else _("More than one commission invoice matches {0}.").format(label)
+			)
+			continue
+		invoice = matches[0]
+		incoming = _money(sum(flt(row.fee_amount) for row in rows))
+		if incoming > _invoice_room(doc, invoice):
+			frappe.msgprint(_("Purchase Invoice {0} does not have room for {1}.").format(invoice, incoming))
+			continue
+		for row in rows:
+			row.purchase_invoice = invoice
+
+
+def _validate_fee_invoices(doc):
+	if doc.source not in INVOICE_FEE_SOURCES:
+		return
+	previous = {}
+	before = doc.get_doc_before_save()
+	if before:
+		previous = {row.name: row for row in before.fees}
+	seen = set()
+	for row in doc.fees:
+		old = previous.get(row.name)
+		if (
+			old
+			and _journal_pays_invoice(old.journal_entry)
+			and (row.purchase_invoice or "") != (old.purchase_invoice or "")
+		):
+			frappe.throw(_("The fee for {0} is already paid.").format(_credit_date(row.credit_date)))
+		if not row.purchase_invoice or not flt(row.fee_amount):
+			continue
+		_validate_fee_invoice(doc, row)
+		if row.purchase_invoice not in seen:
+			seen.add(row.purchase_invoice)
+			_reject_over_allocation(doc, row.purchase_invoice)
+
+
+def _validate_fee_invoice(doc, row):
+	invoice = _invoice_record(row.purchase_invoice)
+	if not invoice or invoice.docstatus != 1:
+		frappe.throw(_("Purchase Invoice {0} is not submitted.").format(row.purchase_invoice))
+	if invoice.company != doc.company:
+		frappe.throw(_("Purchase Invoice {0} belongs to another company.").format(row.purchase_invoice))
+	if invoice.currency != doc.currency:
+		frappe.throw(_("Purchase Invoice {0} is in another currency.").format(row.purchase_invoice))
+	settings = get_source_settings(doc.company, doc.source)
+	if not settings or invoice.supplier != settings.supplier:
+		frappe.throw(_("Purchase Invoice {0} belongs to another supplier.").format(row.purchase_invoice))
+	delivery = _delivery_month(invoice)
+	if delivery and _month_key(row.credit_date) != delivery:
+		frappe.throw(
+			_("Fee for {0} is outside the month of Purchase Invoice {1}.").format(
+				_credit_date(row.credit_date), row.purchase_invoice
+			)
+		)
+
+
+def _reject_over_allocation(doc, invoice):
+	amount = _invoice_amount(_invoice_record(invoice))
+	allocated = _money(sum(flt(row.fee_amount) for row in _linked_fee_rows(invoice, doc, submitted_only=False)))
+	if allocated > amount:
+		frappe.throw(
+			_("Fees allocated to Purchase Invoice {0} cannot exceed {1}.").format(invoice, amount)
+		)
+
+
+def _pay_fee_invoices(doc):
+	if doc.source not in INVOICE_FEE_SOURCES or doc.flags.get("skip_fee_invoice_payment"):
+		return
+	invoices = []
+	for row in doc.fees:
+		if not row.purchase_invoice or not flt(row.fee_amount) or row.purchase_invoice in invoices:
+			continue
+		if row.journal_entry and not _is_legacy_fee_journal(row):
+			continue
+		invoices.append(row.purchase_invoice)
+	touched = []
+	for invoice in invoices:
+		touched.extend(_pay_one_fee_invoice(doc, invoice))
+	for name in dict.fromkeys(touched):
+		_refresh_paid_register(name)
+
+
+def _pay_one_fee_invoice(doc, invoice):
+	rows = _linked_fee_rows(invoice, doc, submitted_only=True)
+	record = _invoice_record(invoice)
+	total = _money(sum(flt(row.fee_amount) for row in rows))
+	unpaid_rows = [
+		row for row in rows if flt(row.fee_amount) and (not row.journal_entry or _is_legacy_fee_journal(row))
+	]
+	unpaid = _money(sum(flt(row.fee_amount) for row in unpaid_rows))
+	amount = _invoice_amount(record)
+	outstanding = _money(record.outstanding_amount)
+	if total != amount:
+		gap = _money(amount - total)
+		if gap > 0:
+			frappe.msgprint(_("Purchase Invoice {0} is short by {1}.").format(invoice, gap))
+		elif unpaid:
+			frappe.msgprint(_("Purchase Invoice {0} is not ready to be paid from the registers.").format(invoice))
+		return []
+	if not unpaid_rows:
+		return []
+	if unpaid > outstanding:
+		frappe.msgprint(_("Purchase Invoice {0} is not ready to be paid from the registers.").format(invoice))
+		return []
+	if not doc.clearing_account:
+		frappe.throw(_("Set the clearing account."))
+	touched = []
+	for row in unpaid_rows:
+		if not row.clearing_account:
+			frappe.throw(_("Set the clearing account."))
+		_drop_legacy_fee_journal(doc, row)
+		journal = _fee_payment_journal(row, record)
+		if row.register == doc.name:
+			live = next((fee for fee in doc.fees if fee.name == row.fee_name), None)
+			if live:
+				live.journal_entry = journal
+				live.journal_created = 1
+		else:
+			frappe.db.set_value(
+				"Settlement Register Fee",
+				row.fee_name,
+				{"journal_entry": journal, "journal_created": 1},
+				update_modified=False,
+			)
+			touched.append(row.register)
+	return touched
+
+
+def _refresh_paid_register(name):
+	other = frappe.get_doc("Settlement Register", name)
+	other.flags.skip_fee_invoice_payment = True
+	_set_bullets(other)
+	other.status = "Reconciled" if register_is_reconciled(other) else "Unreconciled"
+	_link_fee_payments(other)
+	sync_reference_rows(other)
+	other.save()
+
+
+def _fee_payment_journal(row, invoice):
+	from erpnext_moldova_settlements.moldova_settlements.journal_entry import ensure_settlement_register_field
+
+	ensure_settlement_register_field()
+	cost_center = frappe.get_cached_value("Company", invoice.company, "cost_center")
+	journal = frappe.new_doc("Journal Entry")
+	journal.voucher_type = "Journal Entry"
+	journal.company = invoice.company
+	journal.posting_date = invoice.posting_date
+	journal.settlement_register = row.register
+	journal.append(
+		"accounts",
+		{
+			"account": invoice.credit_to,
+			"party_type": "Supplier",
+			"party": invoice.supplier,
+			"debit_in_account_currency": row.fee_amount,
+			"reference_type": "Purchase Invoice",
+			"reference_name": invoice.name,
+			"cost_center": cost_center,
+		},
+	)
+	journal.append(
+		"accounts",
+		{
+			"account": row.clearing_account,
+			"credit_in_account_currency": row.fee_amount,
+		},
+	)
+	journal.insert()
+	journal.submit()
+	return journal.name
+
+
+def _linked_fee_rows(invoice, doc, submitted_only):
+	status_sql = "parent.docstatus = 1" if submitted_only else "parent.docstatus < 2"
+	rows = frappe.db.sql(
+		f"""
+		select child.name as fee_name, child.parent as register, child.fee_amount,
+			child.journal_entry, child.journal_created, parent.clearing_account
+		from `tabSettlement Register Fee` child
+		inner join `tabSettlement Register` parent on parent.name = child.parent
+		where child.purchase_invoice = %s and {status_sql} and parent.name != %s
+		""",
+		(invoice, doc.name or ""),
+		as_dict=True,
+	)
+	if doc.docstatus < 2:
+		for row in doc.fees:
+			if row.purchase_invoice == invoice and flt(row.fee_amount):
+				rows.append(
+					frappe._dict(
+						fee_name=row.name,
+						register=doc.name,
+						fee_amount=row.fee_amount,
+						journal_entry=row.journal_entry,
+						journal_created=row.journal_created,
+						clearing_account=doc.clearing_account,
+					)
+				)
+	return rows
+
+
+def _commission_invoices(doc, supplier, month):
+	rows = frappe.get_all(
+		"Purchase Invoice",
+		filters={
+			"docstatus": 1,
+			"company": doc.company,
+			"supplier": supplier,
+			"currency": doc.currency,
+		},
+		fields=["name", "purchase_efactura"],
+	)
+	matches = []
+	for row in rows:
+		if not row.purchase_efactura:
+			continue
+		record = _invoice_record(row.name)
+		if _delivery_month(record) == month and _invoice_room(doc, row.name) > 0:
+			matches.append(row.name)
+	return matches
+
+
+def commission_invoice_query(doctype, txt, searchfield, start, page_len, filters):
+	del doctype, searchfield
+	filters = frappe._dict(frappe.parse_json(filters) if isinstance(filters, str) else (filters or {}))
+	settings = get_source_settings(filters.company, filters.source)
+	if not settings or not settings.supplier or not filters.company or not filters.currency:
+		return []
+	return frappe.db.sql(
+		"""
+		select pi.name, pi.supplier_name,
+			concat(format(pi.grand_total, 2), ' ', pi.currency),
+			date_format(pi.posting_date, '%%Y-%%m-%%d')
+		from `tabPurchase Invoice` pi
+		where pi.docstatus = 1
+			and pi.company = %(company)s
+			and pi.supplier = %(supplier)s
+			and pi.currency = %(currency)s
+			and pi.name like %(txt)s
+			and (
+				select coalesce(sum(child.fee_amount), 0)
+				from `tabSettlement Register Fee` child
+				inner join `tabSettlement Register` parent on parent.name = child.parent
+				where child.purchase_invoice = pi.name and parent.docstatus < 2
+			) < pi.grand_total
+		order by pi.posting_date desc, pi.name desc
+		limit %(page_len)s offset %(start)s
+		""",
+		{
+			"company": filters.company,
+			"supplier": settings.supplier,
+			"currency": filters.currency,
+			"txt": f"%{txt or ''}%",
+			"page_len": cint(page_len) or 20,
+			"start": cint(start),
+		},
+	)
+
+
+def _invoice_room(doc, invoice):
+	allocated = _money(
+		sum(flt(row.fee_amount) for row in _linked_fee_rows(invoice, doc, submitted_only=False))
+	)
+	return _money(_invoice_amount(_invoice_record(invoice)) - allocated)
+
+
+def _invoice_record(name):
+	fields = [
+		"name",
+		"docstatus",
+		"company",
+		"supplier",
+		"currency",
+		"grand_total",
+		"outstanding_amount",
+		"posting_date",
+		"credit_to",
+	]
+	if _invoice_has_efactura_link():
+		fields.append("purchase_efactura")
+	return frappe.db.get_value("Purchase Invoice", name, fields, as_dict=True)
+
+
+def _invoice_amount(invoice):
+	return _money(invoice.grand_total)
+
+
+def _journal_pays_invoice(journal_entry):
+	if not journal_entry:
+		return False
+	return bool(
+		frappe.db.exists(
+			"Journal Entry Account",
+			{"parent": journal_entry, "reference_type": "Purchase Invoice"},
+		)
+	)
+
+
+def _is_legacy_fee_journal(row):
+	return bool(row.journal_entry) and cint(row.journal_created) and not _journal_pays_invoice(row.journal_entry)
+
+
+def _drop_legacy_fee_journal(doc, row):
+	if not _is_legacy_fee_journal(row):
+		return
+	journal = row.journal_entry
+	if row.register == doc.name:
+		live = next((fee for fee in doc.fees if fee.name == row.fee_name), None)
+		if live:
+			live.journal_entry = None
+			live.journal_created = 0
+	else:
+		frappe.db.set_value(
+			"Settlement Register Fee",
+			row.fee_name,
+			{"journal_entry": None, "journal_created": 0},
+			update_modified=False,
+		)
+	row.journal_entry = None
+	row.journal_created = 0
+	if not frappe.db.exists("Journal Entry", journal):
+		return
+	linked = frappe.get_doc("Journal Entry", journal)
+	if linked.docstatus != 1:
+		return
+	linked.flags.ignore_links = True
+	linked.flags.skip_settlement_release = True
+	linked.cancel()
+
+
+def _delivery_month(invoice):
+	efactura = invoice.get("purchase_efactura") if invoice else None
+	if not efactura or not frappe.db.exists("DocType", "Purchase eFactura"):
+		return None
+	delivery = frappe.db.get_value("Purchase eFactura", efactura, "delivery_date")
+	if not delivery:
+		return None
+	return _month_key(delivery)
+
+
+def _invoice_has_efactura_link():
+	return frappe.get_meta("Purchase Invoice").has_field("purchase_efactura")
+
+
+def _month_key(value):
+	day = getdate(value)
+	return (day.year, day.month)
+
+
+def _money(value):
+	return flt(value, 2)
+
+
 def _create_fee_entries(doc):
 	from erpnext_moldova_settlements.moldova_settlements.journal_entry import ensure_settlement_register_field
 
@@ -1259,6 +1645,8 @@ def _set_bullets(doc):
 			continue
 		if row.journal_entry or not flt(row.fee_amount):
 			row.row_bullet = "Green"
+		elif doc.source in INVOICE_FEE_SOURCES and row.credit_date and doc.clearing_account:
+			row.row_bullet = "Yellow"
 		elif row.credit_date and flt(row.fee_amount) and doc.clearing_account and doc.fee_account:
 			row.row_bullet = "Yellow"
 		else:

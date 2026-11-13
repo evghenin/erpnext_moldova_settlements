@@ -46,7 +46,7 @@
    "options": "Account"
   },
   {
-   "description": "Debit account of the fee Journal Entry for NovaPay, MegaMega, and MAIB Ecomm. The MAIB POS register does not create that Journal Entry.",
+   "description": "Debit account of the fee Journal Entry for MAIB Ecomm. NovaPay and MegaMega pay the commission Purchase Invoice instead. The MAIB POS register does not create that Journal Entry.",
    "fieldname": "fee_account",
    "fieldtype": "Link",
    "label": "Fee Account",

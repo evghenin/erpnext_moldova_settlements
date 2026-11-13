@@ -150,7 +150,8 @@ after_migrate = [
 ]
 
 override_doctype_dashboards = {
-	"Journal Entry": "erpnext_moldova_settlements.moldova_settlements.journal_entry.get_dashboard_data"
+	"Journal Entry": "erpnext_moldova_settlements.moldova_settlements.journal_entry.get_dashboard_data",
+	"Purchase Invoice": "erpnext_moldova_settlements.moldova_settlements.purchase_invoice.get_dashboard_data",
 }
 
 doc_events = {

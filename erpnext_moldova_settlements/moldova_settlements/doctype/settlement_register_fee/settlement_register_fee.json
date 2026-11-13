@@ -4,7 +4,7 @@
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
- "field_order": ["row_bullet", "credit_date", "external_number", "journal_entry", "payment_entry", "fee_amount", "journal_created", "currency"],
+ "field_order": ["row_bullet", "credit_date", "external_number", "purchase_invoice", "journal_entry", "payment_entry", "fee_amount", "journal_created", "currency"],
  "fields": [
   {
    "allow_on_submit": 1,
@@ -42,6 +42,16 @@
    "read_only": 1
   },
   {
+   "allow_on_submit": 1,
+   "columns": 2,
+   "description": "NovaPay and MegaMega. The commission invoice for this fee.",
+   "fieldname": "purchase_invoice",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Purchase Invoice",
+   "options": "Purchase Invoice"
+  },
+  {
    "columns": 2,
    "fieldname": "fee_amount",
    "fieldtype": "Currency",
@@ -51,7 +61,7 @@
    "read_only": 1
   },
   {
-   "description": "NovaPay, MegaMega, and MAIB Ecomm. The MAIB POS register stores the Journal Entry on each fee debit.",
+   "description": "MAIB Ecomm stores the fee expense entry. NovaPay and MegaMega store the payment of the commission Purchase Invoice.",
    "allow_on_submit": 1,
    "columns": 2,
    "fieldname": "journal_entry",
