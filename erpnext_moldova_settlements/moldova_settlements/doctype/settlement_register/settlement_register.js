@@ -87,11 +87,11 @@ frappe.ui.form.on("Settlement Register Payment", {
 	},
 	payment_entry(frm, cdt, cdn) {
 		fill_customer_from_link(frm, cdt, cdn);
-		refresh_row_indicator(frm, "payments", cdn, "external_number");
+		refresh_row_indicator(frm, "payments", cdn, "payment_date");
 	},
 	sales_invoice(frm, cdt, cdn) {
 		fill_customer_from_link(frm, cdt, cdn);
-		refresh_row_indicator(frm, "payments", cdn, "external_number");
+		refresh_row_indicator(frm, "payments", cdn, "payment_date");
 	},
 });
 
@@ -323,7 +323,7 @@ function indicator_color(table, doc) {
 
 function set_row_indicators(frm) {
 	[
-		["payments", "Settlement Register Payment", "external_number"],
+		["payments", "Settlement Register Payment", "payment_date"],
 		["fees", "Settlement Register Fee", "credit_date"],
 		["deposits", "Settlement Register Deposit", "credit_date"],
 	].forEach(([table, doctype, fieldname]) => {
